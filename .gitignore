@@ -2,3 +2,4 @@
 /.venv
 *.joblib
 __pycache__/
+shpory.txt

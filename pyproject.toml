@@ -13,8 +13,8 @@ dependencies = [
     "scikit-learn",
     "joblib",
     "psycopg[binary]",
-    "numpy>=1.26,<3",
-    "torch>=2.2,<3",
+    "numpy",
+    "torch",
 ]
 
 [dependency-groups]
@@ -23,7 +23,7 @@ dev = [
     "httpx",
     "locust",
     "ruff",
-    "ipykernel>=7.3.0",
+    "ipykernel",
 ]
 
 [build-system]
@@ -32,3 +32,7 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "my_service"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

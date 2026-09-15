@@ -851,20 +851,20 @@ dev = [
 requires-dist = [
     { name = "fastapi" },
     { name = "joblib" },
-    { name = "numpy", specifier = ">=1.26,<3" },
+    { name = "numpy" },
     { name = "pandas" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "scikit-learn" },
-    { name = "torch", specifier = ">=2.2,<3" },
+    { name = "torch" },
     { name = "uvicorn" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx" },
-    { name = "ipykernel", specifier = ">=7.3.0" },
+    { name = "ipykernel" },
     { name = "locust" },
     { name = "pytest" },
     { name = "ruff" },
