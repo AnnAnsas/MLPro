@@ -29,8 +29,11 @@ class Features(BaseModel):
 
 
 class Prediction(BaseModel):
+    request_id: uuid.UUID
+    model_version: str
     prediction: Literal[0, 1]
-    probability: FiniteFloat = Field(ge=0, le=1, description="Probability of class 1")
+    score: FiniteFloat = Field(ge=0, le=1, description="Probability of class 1")
+    latency_ms: FiniteFloat = Field(ge=0)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,7 +43,7 @@ async def lifespan(app: FastAPI):
     app.state.version = bundle["metadata"]["model_version"]
 
     if settings.database_url:
-        await db.init_db(settings.database_url)
+        db.init()
     yield
     app.state.pipeline = None
 
@@ -71,6 +74,10 @@ def predict(x: Features, bg: BackgroundTasks) -> Prediction:
     if settings.database_url:
         bg.add_task(db.save_prediction, request_id, payload, score, app.state.version, latency_ms)
 
-    prediction = int(score >= app.state.meta["threshold"])
-
-    return Prediction(probability=score, prediction=prediction)
+    return Prediction(
+        request_id=request_id,
+        model_version=app.state.version,
+        prediction=int(score >= app.state.meta["threshold"]),
+        score=score,
+        latency_ms=latency_ms,
+    )
