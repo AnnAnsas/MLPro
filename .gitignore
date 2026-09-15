@@ -1,0 +1,4 @@
+*.ipynb
+/.venv
+*.joblib
+__pycache__/
