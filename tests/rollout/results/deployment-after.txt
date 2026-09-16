@@ -1,0 +1,2 @@
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES           SELECTOR
+my-service   2/2     2            2           51m   api          my_service:1.0   app=my_service

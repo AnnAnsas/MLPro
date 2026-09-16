@@ -49,3 +49,30 @@
 ```bash
 docker compose exec -T api .venv/bin/python - --stdout-only < tests/load_testing/benchmark_batch.py > tests/load_testing/results/batch_benchmark.json
 ```
+# Выкат версии 1.1 и откат
+
+Образ `my_service:1.1` содержит `/v1/predict/batch`, которого нет в `1.0`. Выкат выполнен в kind-кластере `mlpro`:
+
+```bash
+docker build -t my_service:1.1 .
+kind load docker-image my_service:1.1 --name mlpro
+kubectl set image deploy/my-service api=my_service:1.1
+kubectl rollout status deploy/my-service
+kubectl rollout undo deploy/my-service
+kubectl rollout status deploy/my-service
+kubectl rollout history deploy/my-service
+```
+
+Вывод `rollout history` после отката:
+
+```text
+deployment.apps/my-service
+REVISION  CHANGE-CAUSE
+1         <none>
+3         <none>
+4         <none>
+```
+
+Ревизия 3 соответствует выкату `1.1`, ревизия 4 — возврату шаблона `1.0` из ревизии 2; откат сам создаёт новую ревизию. После отката: образ `my_service:1.0`, `READY 2/2`, `AVAILABLE 2`.
+
+Поды заменялись по одному: новая реплика переходила в Ready, после чего старая завершалась; откат аналогично вернул `1.0` без batch-эндпоинта. Две реплики, RollingUpdate и readiness-проба позволяли сохранять готовые поды во время замены, но не гарантировали успех каждого запроса. Утверждать «сервис не молчал ни секунды» по этому прогону нельзя: из 300 циклов проверки через Service два дали таймаут `/health`, ещё три — ошибку `/openapi.json` после успешного health; точная причина этих сбоев отдельно не установлена.
