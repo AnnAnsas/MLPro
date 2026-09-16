@@ -81,3 +81,37 @@ def predict(x: Features, bg: BackgroundTasks) -> Prediction:
         score=score,
         latency_ms=latency_ms,
     )
+
+
+class BatchFeatures(BaseModel):
+    rows: list[Features] = Field(min_length=1, max_length=1000)
+
+
+class BatchResult(BaseModel):
+    prediction: Literal[0, 1]
+    score: FiniteFloat = Field(ge=0, le=1)
+
+
+class BatchPrediction(BaseModel):
+    request_id: uuid.UUID
+    model_version: str
+    predictions: list[BatchResult]
+    latency_ms: FiniteFloat = Field(ge=0)
+
+
+@app.post("/v1/predict/batch")
+def predict_batch(batch: BatchFeatures) -> BatchPrediction:
+    t0 = time.perf_counter()
+    request_id = uuid.uuid4()
+    inputs = np.asarray([row.sequence for row in batch.rows], dtype=np.float32)
+    scores = app.state.pipeline.predict_proba(inputs)[:, 1]
+    predictions = [
+        BatchResult(prediction=int(score >= app.state.meta["threshold"]), score=float(score))
+        for score in scores
+    ]
+    return BatchPrediction(
+        request_id=request_id,
+        model_version=app.state.version,
+        predictions=predictions,
+        latency_ms=round((time.perf_counter() - t0) * 1000, 2),
+    )
