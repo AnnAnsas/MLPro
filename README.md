@@ -22,3 +22,13 @@
 | `failed to solve: failed to read dockerfile: open Dockerfile: no such file or directory` | Контекст сборки был `./src/my_service`, а Dockerfile лежит в корне проекта. | В секции `build` файла `compose.yaml` указать `context: .` и `dockerfile: Dockerfile`. Проверка `docker compose config --quiet` прошла. Повторный запуск: `docker compose up -d --build`. |
 | `Deployment.apps "my_service" is invalid: metadata.name: Invalid value: "my_service"`<br>`Service "my_service" is invalid: metadata.name: Invalid value: "my_service"` | Подчёркивание недопустимо в именах этих ресурсов Kubernetes. | Заменить `metadata.name` на `my-service` в обоих манифестах. Имя образа `my_service:1.0` и совпадающие labels/selector менять не нужно. Применить: `kubectl apply -f k8s/`. |
 | `stream closed: EOF for default/my-service-5554f489fb-p65hm (api)`<br>Из `kubectl describe pod`:<br>`Status: Pending`<br>`Node: <none>`<br>`FailedScheduling: 0/1 nodes are available: 1 Insufficient memory.` | Pod ещё не запускался, поэтому логов не было. В `requests` и `limits` указано `1000000000Mi` — почти петабайт памяти на pod. | Заменить память на `1Gi` в `requests` и `limits`. Применить: `kubectl apply -f k8s/`. Проверить состояние: `kubectl get pods -w`. |
+
+# Нагрузочное тестирование
+
+| Пользователей | RPS | median, мс | p95, мс | max, мс | Доля ошибок |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 6,56 | 15 | 53 | 673,44 | 0% |
+| 50 | 32,39 | 10 | 39 | 355,11 | 0% |
+| 100 | 63,20 | 9 | 220 | 1662,89 | 0% |
+
+При 10 и 50 пользователях p95 превышал медиану примерно в 3,5–4 раза, а при 100 разрыв резко вырос: 220 мс против 9 мс, то есть примерно в 24 раза. При переходе от 50 к 100 пользователям RPS вырос с 32,39 до 63,20 — почти вдвое, поэтому по этим прогонам предел пропускной способности ещё не установлен. При этом максимальная задержка достигла 1,66 с: часть запросов стала заметно медленнее, хотя медиана осталась низкой. Locust не зарегистрировал ошибок ни в одном прогоне.
