@@ -1,6 +1,6 @@
 *.ipynb
 /.venv
-*.joblib
+# *.joblib
 __pycache__
 shpory.txt
 .pytest_cache/
