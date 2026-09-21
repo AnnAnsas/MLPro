@@ -36,6 +36,7 @@ module-name = "my_service"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["integration: нужна база данных - адрес в DATABASE_URL"]
 
 [tool.ruff]
 line-length = 100
