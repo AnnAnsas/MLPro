@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -7,13 +8,16 @@ from my_service.config import settings
 from my_service.service.app import app
 
 
-@pytest.fixture(scope="session")
-def client():
+@pytest.fixture()
+def client(request):
     model_path = (
         Path(__file__).resolve().parents[1] / "artifacts/tiny_sequence_transformer_v1.joblib"
     )
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(settings, "database_url", None)
+        database_url = (
+            os.getenv("DATABASE_URL") if request.node.get_closest_marker("integration") else None
+        )
+        patch.setattr(settings, "database_url", database_url)
         patch.setattr(settings, "model_path", str(model_path))
         with TestClient(app) as client:
             yield client
