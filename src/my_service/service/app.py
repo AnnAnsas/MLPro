@@ -1,18 +1,15 @@
 import time
 import uuid
+from contextlib import asynccontextmanager
 from typing import Literal
 
 import numpy as np
-from fastapi import FastAPI, BackgroundTasks, HTTPException
-
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel, Field, FiniteFloat
 
+from my_service import db
 from my_service.config import settings
 from my_service.model_loader import load_model
-from my_service import db
-
-from contextlib import asynccontextmanager
-
 
 SensorValue = FiniteFloat | None
 

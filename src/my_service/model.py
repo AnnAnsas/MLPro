@@ -5,6 +5,7 @@ from sklearn.utils.validation import check_is_fitted
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+
 def validate_sequences(X):
     X = np.asarray(X, dtype=np.float32)
     if X.ndim != 3 or any(d == 0 for d in X.shape):

@@ -1,5 +1,10 @@
 *.ipynb
 /.venv
 *.joblib
-__pycache__/
+__pycache__
 shpory.txt
+.pytest_cache/
+.pyc
+.ruff_cache
+data/
+.env

@@ -17,7 +17,7 @@ def test_batch_matches_single_and_calls_model_once(client, good_row):
     assert body['latency_ms'] >= 0
     assert body['model_version'] == client.app.state.version
     assert len(body['predictions']) == 2
-    for actual, single in zip(body['predictions'], expected):
+    for actual, single in zip(body['predictions'], expected, strict=True):
         assert actual['score'] == pytest.approx(single['score'], abs=1e-6)
         assert actual['prediction'] == single['prediction']
 

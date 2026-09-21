@@ -4,7 +4,6 @@ from pathlib import Path
 from statistics import median
 from urllib.request import Request, urlopen
 
-
 URL = "http://127.0.0.1:8000/v1/predict/batch"
 ROW = {"sequence": [[step / 100, 0.2, 0.01] for step in range(48)]}
 
