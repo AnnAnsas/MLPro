@@ -120,8 +120,16 @@ jobs:
       
       - name: diagnostics
         if: failure()
-
+        shell: bash
         run: |
-          kubectl get pods -o wide
-          kubectl describe deploy/my-service | tail -20
-          kubectl logs deploy/my-service --tail=30 || true
+          kubectl get deployments,replicasets,pods -o wide --request-timeout=20s || true
+          kubectl describe pods --request-timeout=20s || true
+          kubectl get events --sort-by=.metadata.creationTimestamp --request-timeout=20s || true
+
+          for pod in $(kubectl get pods -o name --request-timeout=20s); do
+            echo "::group::Logs: $pod"
+            kubectl logs "$pod" --all-containers=true --prefix=true --tail=100 --request-timeout=20s || true
+            echo "Previous container logs: $pod"
+            kubectl logs "$pod" --all-containers=true --prefix=true --previous --tail=100 --request-timeout=20s || true
+            echo "::endgroup::"
+          done
