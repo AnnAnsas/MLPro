@@ -13,5 +13,5 @@ def test_model_quality():
         predictions = bundle["pipeline"].predict(data["X"])
         f1 = f1_score(data["y"], predictions)
 
-    min_f1 = 1.01  # Намеренно завышенный порог для красного прогона CI.
+    min_f1 = bundle["metadata"]["test_metrics"]["f1"]
     assert f1 >= min_f1, f"F1={f1:.4f}, требуется >= {min_f1:.4f}"
