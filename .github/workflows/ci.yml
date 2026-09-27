@@ -65,8 +65,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER}/my-service:sha-${GITHUB_SHA}" >> "$GITHUB_ENV" #ghcr
-      - run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+      - name: Set image tag
+        shell: bash
+        run: |
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE=ghcr.io/${owner}/my-service:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -108,7 +111,7 @@ jobs:
 
           curl --fail -s localhost:8080/health; echo
           curl --fail -s -X POST localhost:8080/v1/predict \
-            -H "Content-Type: application/json" -d @good.json; echo
+            -H "Content-Type: application/json" -d @example.json; echo
           
           sleep 2
 
