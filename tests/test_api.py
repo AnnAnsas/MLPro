@@ -38,3 +38,11 @@ def test_invalid_step_is_422(client, good_row, step):
 
 def test_missing_sequence_is_422(client):
     assert client.post("/v1/predict", json={}).status_code == 422
+
+
+def test_extra_field_is_422(client, good_row):
+    response = client.post(
+        "/v1/predict",
+        json={**good_row, "unexpected": 1},
+    )
+    assert response.status_code == 422
