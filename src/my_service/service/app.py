@@ -18,6 +18,8 @@ SensorValue = FiniteFloat | None
 
 
 class Features(BaseModel):
+    model_config = {"extra": "forbid"}
+
     sequence: list[tuple[SensorValue, SensorValue, SensorValue]] = Field(
         min_length=48,
         max_length=48,
@@ -84,6 +86,8 @@ def predict(x: Features, bg: BackgroundTasks) -> Prediction:
 
 
 class BatchFeatures(BaseModel):
+    model_config = {"extra": "forbid"}
+
     rows: list[Features] = Field(min_length=1, max_length=1000)
 
 
