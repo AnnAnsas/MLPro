@@ -1,5 +1,7 @@
 import pytest
 
+from my_service.config import settings
+
 
 def test_health(client):
     response = client.get("/health")
@@ -7,6 +9,7 @@ def test_health(client):
     assert response.json() == {
         "status": "ok",
         "model_version": client.app.state.version,
+        "model_path": settings.model_path,
     }
 
 

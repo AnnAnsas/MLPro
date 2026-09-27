@@ -111,7 +111,8 @@ jobs:
 
           curl --fail -s localhost:8080/health; echo
           curl --fail -s -X POST localhost:8080/v1/predict \
-            -H "Content-Type: application/json" -d @example.json; echo
+            -H "Content-Type: application/json" -d @example.json \
+            | python3 -c "import json,sys; r=json.load(sys.stdin); print(r); assert 0 <= r['score'] <= 1, r"
           
           sleep 2
 
