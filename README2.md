@@ -6,18 +6,31 @@
 |---|---|
 | Пайплайн | Зелёный прогон с `tests`, `build`, `deploy` https://github.com/AnnAnsas/MLPro/actions/runs/36337616624|
 | Образ | Страница пакета GHCR с SHA-тегом https://github.com/AnnAnsas/MLPro/pkgs/container/my-service|
-| Pull request | PR с красной и зелёной проверками https://github.com/AnnAnsas/MLPro/pull/4/commits - коммиты add deploy stage и fix pg_advisory_xact_lock|
+| Pull request | [PR №4: история исправлений](https://github.com/AnnAnsas/MLPro/pull/4/commits). Намеренно сломанный тест качества — [PR №11](https://github.com/AnnAnsas/MLPro/pull/11), [красный прогон](https://github.com/AnnAnsas/MLPro/actions/runs/36345205688/job/108692875535?pr=11). Зелёный прогон после исправления пока не добавлен.|
 | Неверный путь модели | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36339889000/job/108677965125 и зелёный - https://github.com/AnnAnsas/MLPro/actions/runs/36340894825/job/108680932503 прогоны, диагноз - в ConfigMap указан неверный путь к модели. Job deploy упал на шаге service: rollout завершился по таймауту. Диагностика показала FileNotFoundError при загрузке artifacts/tiny_sequence_transformer.joblib. После восстановления пути artifacts/tiny_sequence_transformer_v1.joblib приложение запустилось, пайплайн прошёл успешно.|
-| Неверное имя Secret | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36342219784 и зелёный прогоны, диагноз - Job deploy упал на шаге service: rollout завершился по таймауту. Новый под получил статус CreateContainerConfigError, поскольку Deployment ссылался на неверное имя обязательного Secret — my-service-secrets-wrong. PostgreSQL при этом работал (1/1 Running).|
-| Недостаточно памяти | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36341276351/job/108681942976 и зелёный - https://github.com/AnnAnsas/MLPro/actions/runs/36341896111 прогоны, диагноз - Job deploy упал на шаге base: PostgreSQL не достиг готовности за 180 секунд. Под остался в состоянии Pending, узел ему не назначен (NODE none). До развёртывания my-service пайплайн не дошёл, поэтому диагностика приложения вернула NotFound. Полезно добавить diagnostics kubectl describe pods / kubectl get events --sort-by=.metadata.creationTimestamp |
+| Неверное имя Secret | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36342219784  ; ссылка на зелёный прогон после исправления пока не добавлена. Диагноз - Job deploy упал на шаге service: rollout завершился по таймауту. Новый под получил статус CreateContainerConfigError, поскольку Deployment ссылался на неверное имя обязательного Secret — my-service-secrets-wrong. PostgreSQL при этом работал (1/1 Running).|
+| Недостаточно памяти | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36341276351/job/108681942976 и зелёный - https://github.com/AnnAnsas/MLPro/actions/runs/36341896111 прогоны, диагноз - Job deploy упал на шаге base: PostgreSQL не достиг готовности за 180 секунд. Под остался в состоянии Pending, узел ему не назначен (NODE none). До развёртывания my-service пайплайн не дошёл, поэтому диагностика приложения вернула NotFound. Позже в diagnostics добавлены describe pods и события кластера. Сам по себе Pending без событий планировщика не доказывает нехватку памяти. |
 
 
 ## Ответы на вопросы
 
 ### 1. Сколько времени занял build и какой слой использовал кэш?
 
-В [первом прогоне](https://github.com/AnnAnsas/MLPro/actions/runs/36337616624) job `build` занял 14 минут 22 секунды (862 секунды), во [втором](https://github.com/AnnAnsas/MLPro/actions/runs/36339889000) — 22 секунды, примерно в 39 раз меньше. На скриншоте выше отметка `CACHED` есть у слоя `RUN uv sync --frozen --no-dev --no-install-project`, а также у копирования исходников, артефакта и остальных показанных слоёв. Docker восстановил кэш из GitHub Actions: команды и входные файлы этих слоёв не изменились. Установка зависимостей расположена до копирования кода, поэтому при изменениях только в `src/` слой зависимостей также может использоваться повторно.
+В [первом прогоне](https://github.com/AnnAnsas/MLPro/actions/runs/36337616624) job `build` занял 14 минут 22 секунды (862 секунды), во [втором](https://github.com/AnnAnsas/MLPro/actions/runs/36339889000) — 22 секунды, примерно в 39 раз меньше. На скриншоте ниже отметка `CACHED` есть у слоя `RUN uv sync --frozen --no-dev --no-install-project`, а также у копирования исходников, артефакта и остальных показанных слоёв. Docker восстановил кэш из GitHub Actions: команды и входные файлы этих слоёв не изменились. Установка зависимостей расположена до копирования кода, поэтому при изменениях только в `src/` слой зависимостей также может использоваться повторно.
 ![CACHED](images/docker-cached.png)
+
+#### Задача 1 со звёздочкой: ускорение
+
+Время job `deploy` в двух успешных прогонах:
+
+| Прогон | Время deploy |
+|---|---:|
+| [Первый](https://github.com/AnnAnsas/MLPro/actions/runs/36337616624/job/108671842544) | 2 мин 28 с — 148 секунд |
+| [Второй](https://github.com/AnnAnsas/MLPro/actions/runs/36340894825/job/108680932503) | 2 мин 30 с — 150 секунд |
+
+Deploy не ускорился: второй запуск занял на 2 секунды больше. Отдельной оптимизации deploy не выполнялось: каждый прогон создаёт новый kind-кластер, скачивает образ и разворачивает PostgreSQL и API. Кэш слоёв используется в job `build` и напрямую не ускоряет эти действия; причину разницы в 2 секунды по одним итоговым временам определить нельзя.
+
+Для шага `astral-sh/setup-uv@v7` зафиксированы 1 с в [первом запуске tests](https://github.com/AnnAnsas/MLPro/actions/runs/36337616624/job/108671376217) и 0 с во [втором](https://github.com/AnnAnsas/MLPro/actions/runs/36340894825/job/108680629283). Это округлённое время одного шага, а не всего job `tests`. Для полного сравнения трёх job ещё нужно добавить общую длительность `tests` до и после; эти два числа сами по себе не доказывают ускорение тестов.
 
 ### 2. Почему ImagePullBackOff может появиться при зелёном deploy?
 
@@ -42,3 +55,31 @@
 ### 7. В каком порядке возникают состояния подов при трёх поломках?
 
 По этапам запуска порядок такой: `Pending` → `CreateContainerConfigError` → `CrashLoopBackOff`. При нехватке запрошенной памяти под не получает узел и остаётся `Pending`; именно отсутствие назначенного узла видно в [прогоне с поломкой ресурсов](https://github.com/AnnAnsas/MLPro/actions/runs/36341276351/job/108681942976). При неверном имени Secret контейнер нельзя подготовить к запуску (`CreateContainerConfigError`), а при неверном пути модели приложение уже запускается и падает с `FileNotFoundError`, после повторных падений переходя в `CrashLoopBackOff`. Это отдельные эксперименты, расположенные по этапам жизни пода, а не последовательность состояний одного пода.
+
+## Задача 2 со звёздочкой: расширенная диагностика
+
+В шаг `diagnostics` добавлены состояния Deployment, ReplicaSet и подов, `describe pods`, события кластера и текущие/предыдущие логи контейнеров каждого пода.
+
+Проверка: [красный прогон с неверным именем Secret](https://github.com/AnnAnsas/MLPro/actions/runs/36343891279/job/108689288136).
+
+Новый под `my-service-d698f4b69-b98rn` получил статус `CreateContainerConfigError`. В его событиях указано `Error: secret "my-service-secrets-wrong" not found`. Образ из GHCR уже присутствовал на узле, но обязательный Secret отсутствовал, поэтому контейнер не запустился и rollout завершился по таймауту.
+
+Старые поды другого ReplicaSet получили `ImagePullBackOff` / `ErrImagePull`, пытаясь скачать `my_service:1.0`. Это отдельная ошибка старого образа. PostgreSQL был готов (`1/1 Running`). Расширенная диагностика позволила увидеть причину отказа нового пода, которую не показывали логи одного старого пода. Предыдущих логов у нового пода нет, поскольку его контейнер ещё не запускался.
+
+## Задача 3 со звёздочкой: тест качества модели
+
+Тест [`test_model_quality`](tests/test_quality.py) загружает сохранённую модель и фиксированную тестовую выборку [`model_quality.npz`](tests/data/model_quality.npz): 180 синтетических окон из ноутбука обучения, не входивших в train и validation. Он считает F1; значение в паспорте модели (`metadata.test_metrics.f1`) равно 1.0. Это результат на простой синтетической выборке, а не оценка качества на реальных данных.
+
+Первым выполнен [красный прогон в PR №11](https://github.com/AnnAnsas/MLPro/actions/runs/36345205688/job/108692875535?pr=11): порог намеренно поднят до 1.01, недостижимого для F1. Проверка падает с сообщением:
+
+```text
+AssertionError: F1=1.0000, требуется >= 1.0100
+```
+
+Исправление для следующего коммита — вернуть сравнение с числом из паспорта:
+
+```python
+min_f1 = bundle["metadata"]["test_metrics"]["f1"]
+```
+
+Ссылка на зелёный прогон после исправления пока не добавлена. Красный прогон в PR подтверждает отказ теста качества, но сам по себе не доказывает блокировку сборки этим тестом: на PR сборка также отключена условием `github.ref == 'refs/heads/main'`. Для отдельного подтверждения блокировки через `needs: tests` нужен соответствующий прогон в main.
