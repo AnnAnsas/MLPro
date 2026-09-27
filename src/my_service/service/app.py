@@ -6,10 +6,9 @@ from typing import Literal
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field, FiniteFloat
 from starlette.background import BackgroundTask
 from starlette.responses import JSONResponse
-
-from pydantic import BaseModel, Field, FiniteFloat
 
 from my_service import db
 from my_service.config import settings
