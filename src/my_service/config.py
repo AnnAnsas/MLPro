@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_path: str = "artifacts/tiny_sequence_transformer_v1.joblib"
+    model_path: str = "artifacts/tiny_sequence_transformer_v.joblib"
     database_url: str | None = None
     log_level: str = "INFO"
 
