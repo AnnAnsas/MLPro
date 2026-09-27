@@ -64,7 +64,7 @@ curl -fsS --retry 30 --retry-connrefused --retry-delay 2 \
 # Скрины терминала
 
 ## pytest
-![Скрин k9s](images/k9s.png)
+![Скрин pytest](images/pytest.png)
 ## SELECT из логов
 ![SELECT из логов](images/select_from_logs.png)
 ## get pods
