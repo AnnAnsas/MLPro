@@ -1,5 +1,5 @@
-*.ipynb
 /.venv
-*.joblib
 __pycache__/
 shpory.txt
+.ruff_cache/
+.pytest_cache/
