@@ -103,7 +103,11 @@ async def log_prediction_request(request: Request, call_next):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "model_version": getattr(app.state, "version", None)}
+    return {
+        "status": "ok",
+        "model_version": getattr(app.state, "version", None),
+        "model_path": settings.model_path,
+    }
 
 @app.get("/ready")
 def ready() -> dict:

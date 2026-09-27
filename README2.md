@@ -2,15 +2,14 @@
 
 Пайплайн: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
-| Пункт | Ссылка |
-|---|---|
-| Пайплайн | Зелёный прогон с `tests`, `build`, `deploy` https://github.com/AnnAnsas/MLPro/actions/runs/36337616624|
-| Образ | Страница пакета GHCR с SHA-тегом https://github.com/AnnAnsas/MLPro/pkgs/container/my-service|
-| Pull request | [PR №4: история исправлений](https://github.com/AnnAnsas/MLPro/pull/4/commits). Намеренно сломанный тест качества — [PR №11](https://github.com/AnnAnsas/MLPro/pull/11), [красный прогон](https://github.com/AnnAnsas/MLPro/actions/runs/36345205688/job/108692875535?pr=11). Зелёный прогон после исправления пока не добавлен.|
-| Неверный путь модели | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36339889000/job/108677965125 и зелёный - https://github.com/AnnAnsas/MLPro/actions/runs/36340894825/job/108680932503 прогоны, диагноз - в ConfigMap указан неверный путь к модели. Job deploy упал на шаге service: rollout завершился по таймауту. Диагностика показала FileNotFoundError при загрузке artifacts/tiny_sequence_transformer.joblib. После восстановления пути artifacts/tiny_sequence_transformer_v1.joblib приложение запустилось, пайплайн прошёл успешно.|
-| Неверное имя Secret | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36342219784  ; ссылка на зелёный прогон после исправления пока не добавлена. Диагноз - Job deploy упал на шаге service: rollout завершился по таймауту. Новый под получил статус CreateContainerConfigError, поскольку Deployment ссылался на неверное имя обязательного Secret — my-service-secrets-wrong. PostgreSQL при этом работал (1/1 Running).|
-| Недостаточно памяти | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36341276351/job/108681942976 и зелёный - https://github.com/AnnAnsas/MLPro/actions/runs/36341896111 прогоны, диагноз - Job deploy упал на шаге base: PostgreSQL не достиг готовности за 180 секунд. Под остался в состоянии Pending, узел ему не назначен (NODE none). До развёртывания my-service пайплайн не дошёл, поэтому диагностика приложения вернула NotFound. Позже в diagnostics добавлены describe pods и события кластера. Сам по себе Pending без событий планировщика не доказывает нехватку памяти. |
-
+| Пункт | Подтверждение | Результат / диагноз |
+|---|---|---|
+| Пайплайн | [Зелёный прогон](https://github.com/AnnAnsas/MLPro/actions/runs/36337616624) | Успешны `tests`, `build`, `deploy`. |
+| Образ | [Пакет GHCR](https://github.com/AnnAnsas/MLPro/pkgs/container/my-service) | Образ с SHA-тегом. |
+| Pull request | [История PR №4](https://github.com/AnnAnsas/MLPro/pull/4/commits); [PR №11](https://github.com/AnnAnsas/MLPro/pull/11): [красный](https://github.com/AnnAnsas/MLPro/actions/runs/36345205688/job/108692875535?pr=11) → [зелёный](https://github.com/AnnAnsas/MLPro/actions/runs/36345602592/job/108694110708) | В PR №11 намеренно завышен порог качества, следующим коммитом восстановлен порог из паспорта. |
+| Неверный путь модели | [Красный](https://github.com/AnnAnsas/MLPro/actions/runs/36339889000/job/108677965125) → [зелёный](https://github.com/AnnAnsas/MLPro/actions/runs/36340894825/job/108680932503) | `deploy`, шаг `service`: таймаут rollout. В логах `FileNotFoundError` для `artifacts/tiny_sequence_transformer.joblib`. Исправлен путь на `artifacts/tiny_sequence_transformer_v1.joblib`. |
+| Неверное имя Secret | [Красный](https://github.com/AnnAnsas/MLPro/actions/runs/36342219784); [повтор с расширенной диагностикой](https://github.com/AnnAnsas/MLPro/actions/runs/36343891279/job/108689288136) → [зелёный после исправления](https://github.com/AnnAnsas/MLPro/actions/runs/36345602592/job/108694110708) | `deploy`, шаг `service`: таймаут rollout, новый под в `CreateContainerConfigError`. События: `secret "my-service-secrets-wrong" not found`. PostgreSQL — `1/1 Running`. |
+| Недостаточно памяти | [Красный](https://github.com/AnnAnsas/MLPro/actions/runs/36341276351/job/108681942976) → [зелёный](https://github.com/AnnAnsas/MLPro/actions/runs/36341896111) | `deploy`, шаг `base`: PostgreSQL не готов за 180 с, под `Pending`, узел не назначен. До развёртывания API выполнение не дошло. Сам по себе `Pending` без событий планировщика не доказывает нехватку памяти. |
 
 ## Ответы на вопросы
 
@@ -76,10 +75,19 @@ Deploy не ускорился: второй запуск занял на 2 се
 AssertionError: F1=1.0000, требуется >= 1.0100
 ```
 
-Исправление для следующего коммита — вернуть сравнение с числом из паспорта:
+В следующем коммите `62c1c7f` восстановлено сравнение с числом из паспорта:
 
 ```python
 min_f1 = bundle["metadata"]["test_metrics"]["f1"]
 ```
 
-Ссылка на зелёный прогон после исправления пока не добавлена. Красный прогон в PR подтверждает отказ теста качества, но сам по себе не доказывает блокировку сборки этим тестом: на PR сборка также отключена условием `github.ref == 'refs/heads/main'`. Для отдельного подтверждения блокировки через `needs: tests` нужен соответствующий прогон в main.
+[Зелёный прогон после исправления](https://github.com/AnnAnsas/MLPro/actions/runs/36345602592/job/108694110708). Красный прогон в PR подтверждает отказ теста качества, но сам по себе не доказывает блокировку сборки этим тестом: на PR сборка также отключена условием `github.ref == 'refs/heads/main'`. Для отдельного подтверждения блокировки через `needs: tests` нужен соответствующий прогон в main.
+
+## Журнал проблем вне намеренных поломок
+
+| Ошибка | Как нашла причину | Исправление |
+|---|---|---|
+| `I001`, `F401`, `E501`, `UP017` при `ruff check .` | Ruff указал ячейки ноутбука и импорты API: порядок импортов, неиспользуемый импорт, длинная строка и `timezone.utc`. | Отсортированы импорты, удалён неиспользуемый `validate_sequences`, перенесена длинная строка, использован `datetime.UTC`. |
+| `F811: Redefinition of unused save_prediction` | После слияния в `db.py` остались две версии одной функции. | Удалена старая версия; сохранена запись `status_code` и `scores`. |
+| `function pg_advsory_xact_lock(integer) does not exist` | Интеграционный тест упал в `db.init()`. В SQL была опечатка в имени функции. | Исправлено на `pg_advisory_xact_lock(7001)` в [коммите 68ef0d3](https://github.com/AnnAnsas/MLPro/commit/68ef0d39e647314747fbfdbcd41253a46a2b3f2a). |
+| Несовпадение имени образа в build и deploy | При сверке workflow обнаружены разные правила формирования имени образа. | В обоих job используется `ghcr.io/<owner в нижнем регистре>/my-service:sha-<GITHUB_SHA>`; deploy загружает этот же образ в kind. |
