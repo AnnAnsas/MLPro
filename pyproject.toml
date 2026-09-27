@@ -2,7 +2,7 @@
 name = "my_service"
 version = "0.1.0"
 description = "ML Pro project"
-requires-python=">=3.11, <3.13"
+requires-python=">=3.11, <3.12"
 
 dependencies = [
     "fastapi",
@@ -10,11 +10,11 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "pandas",
-    "scikit-learn",
-    "joblib",
+    "scikit-learn==1.9.1",
+    "joblib==1.6.0",
     "psycopg[binary]",
-    "numpy",
-    "torch",
+    "numpy==2.4.6",
+    "torch==2.14.0",
 ]
 
 [dependency-groups]
@@ -43,3 +43,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E","F","I","B","UP"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

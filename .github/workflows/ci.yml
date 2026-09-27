@@ -55,3 +55,73 @@ jobs:
           tags: ${{ env.IMAGE }}
           cache-from: type=gha 
           cache-to: type=gha,mode=max
+
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions: {contents: read, packages: read}
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set image tag
+        shell: bash
+        run: |
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE=ghcr.io/${owner}/my-service:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - uses: helm/kind-action@v1
+        with: {cluster_name: ci}
+
+      - name: image to cluster
+        run: |
+          docker pull "$IMAGE"
+          kind load docker-image "$IMAGE" --name ci
+
+      - name: load secrets
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          kubectl create secret generic my-service-secrets \
+          --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" \
+          --from-literal=DATABASE_URL="postgresql://postgres:$DB_PASSWORD@postgres:5432/my-service"
+      
+      - name: base
+        run: |
+          kubectl apply -f k8s/postgres.yaml
+          kubectl rollout status deploy/postgres --timeout=180s
+      
+      - name: service
+        run: |
+          kubectl apply -f k8s/
+          kubectl set image deploy/my-service api="$IMAGE"
+          kubectl rollout status deploy/my-service --timeout=120s
+
+      - name: smoke
+        run: |
+          kubectl port-forward svc/my-service 8080:80 &
+          sleep 5
+
+          curl --fail -s localhost:8080/health; echo
+          curl --fail -s -X POST localhost:8080/v1/predict \
+            -H "Content-Type: application/json" -d @example.json; echo
+          
+          sleep 2
+
+          kubectl exec deploy/postgres -- psql -U postgres -d my-service \
+            -tc "SELECT count(*) FROM predictions" | grep -q 1
+      
+      - name: diagnostics
+        if: failure()
+
+        run: |
+          kubectl get pods -o wide
+          kubectl describe deploy/my-service | tail -20
+          kubectl logs deploy/my-service --tail=30 || true
