@@ -1,3 +1,66 @@
+# Проверка после клонирования
+
+Нужны uv, Docker с Compose, kind и kubectl. Docker должен быть запущен,
+порты 8000, 8001 и 5432 — свободны. Из корня репозитория выполните
+три блока ниже по порядку, каждый целиком.
+
+## 1. Установка и тесты
+
+```bash
+(
+set -e
+uv sync --locked
+uv run --no-sync python -c "import my_service"
+uv run --no-sync pytest
+)
+```
+
+## 2. Compose, предсказания и запись в PostgreSQL
+
+```bash
+(
+set -e
+docker compose up -d --build --wait --wait-timeout 180
+curl -fsS --retry 30 --retry-connrefused --retry-delay 2 \
+  http://localhost:8000/ready
+curl -fsS -H 'Content-Type: application/json' \
+  --data-binary @example.json http://localhost:8000/v1/predict
+printf '{"rows":[%s,%s]}' "$(cat example.json)" "$(cat example.json)" |
+  curl -fsS -H 'Content-Type: application/json' \
+    --data-binary @- http://localhost:8000/v1/predict/batch
+sleep 1
+docker compose exec -T db psql -U postgres -d postgres -c \
+  'SELECT request_id, status_code, score, scores FROM predictions ORDER BY ts DESC LIMIT 5;'
+)
+```
+
+В SELECT должны появиться запросы со статусом 200 и оценки батча в `scores`.
+Пауза перед SELECT даёт фоновой задаче время записать результат.
+
+## 3. kind и запрос через Service
+
+```bash
+(
+set -e
+kind get clusters | grep -qx mlpro-hw1 ||
+  kind create cluster --name mlpro-hw1
+docker build -t my_service:1.0 .
+kind load docker-image my_service:1.0 --name mlpro-hw1
+kubectl --context kind-mlpro-hw1 apply -f k8s/
+kubectl --context kind-mlpro-hw1 rollout status \
+  deployment/my-service --timeout=180s
+kubectl --context kind-mlpro-hw1 get pods
+kubectl --context kind-mlpro-hw1 port-forward service/my-service 8001:80 &
+forward_pid=$!
+trap 'kill "$forward_pid"' EXIT
+curl -fsS --retry 30 --retry-connrefused --retry-delay 2 \
+  -H 'Content-Type: application/json' \
+  --data-binary @example.json http://localhost:8001/v1/predict
+)
+```
+
+Ожидаются две готовые реплики и JSON с предсказанием.
+
 # Скрины терминала
 
 ## pytest
