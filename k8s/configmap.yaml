@@ -4,7 +4,7 @@ metadata:
   name: my-service-config
 data:
   LOG_LEVEL: "INFO"
-  MODEL_PATH: artifacts/tiny_sequence_transformer.joblib
+  MODEL_PATH: artifacts/tiny_sequence_transformer_v1.joblib
   MLFLOW_TRACKING_URI: http://mlflow.mlops:5000
   MODEL_NAME: my-service
   MODEL_ALIAS: champion
