@@ -4,9 +4,9 @@
 
 | Пункт | Ссылка |
 |---|---|
-| Пайплайн | Зелёный прогон с `tests`, `build`, `deploy` |
-| Образ | Страница пакета GHCR с SHA-тегом |
-| Pull request | PR с красной и зелёной проверками |
-| Неверный путь модели | Красный и зелёный прогоны, диагноз |
+| Пайплайн | Зелёный прогон с `tests`, `build`, `deploy` https://github.com/AnnAnsas/MLPro/actions/runs/36337616624|
+| Образ | Страница пакета GHCR с SHA-тегом https://github.com/AnnAnsas/MLPro/pkgs/container/my-service|
+| Pull request | PR с красной и зелёной проверками https://github.com/AnnAnsas/MLPro/pull/4/commits - коммиты add deploy stage и fix pg_advisory_xact_lock|
+| Неверный путь модели | Красный - https://github.com/AnnAnsas/MLPro/actions/runs/36339889000/job/108677965125 и зелёный прогоны, диагноз - в ConfigMap указан неверный путь к модели. Job deploy упал на шаге service: rollout завершился по таймауту. Диагностика показала FileNotFoundError при загрузке artifacts/tiny_sequence_transformer.joblib. После восстановления пути artifacts/tiny_sequence_transformer_v1.joblib приложение запустилось, пайплайн прошёл успешно.|
 | Неверное имя Secret | Красный и зелёный прогоны, диагноз |
 | Недостаточно памяти | Красный и зелёный прогоны, диагноз |
