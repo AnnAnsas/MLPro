@@ -20,6 +20,8 @@
 | `TLS handshake timeout`, `CrashLoopBackOff` системных подов | Из 3916 МиБ доступно около 580 МиБ, используется swap. Давление на память; OOM не подтверждён. | Мониторинг и Airflow остановлены, Docker перезапущен. Все поды восстановились; после возврата Airflow доступно около 1054 МиБ. Мониторинг выключен. |
 | После `kubectl scale` поды не останавливались | Controller-manager падал и не применял число реплик. | После перезапуска Docker команды отработали; Prometheus повторно уменьшен до 0 после остановки оператора. |
 | `Registered model alias champion not found` | [Первый прогон](http://mlflow.localhost/#/experiments/1/runs/9623d9d340124b2496500ca5f3a02bcd) обращался к ещё отсутствующему алиасу. | Добавлена проверка `get_registered_model().aliases`; следующий запуск завершился успешно. |
+| Deploy: поды `Pending`, `Insufficient memory` | Запрошено 3490 МиБ из ~3916; новые поды требовали ещё по 1 ГиБ. `apply` и `set image` создавали два ReplicaSet. | Airflow остановлен. CI применяет Deployment сразу с SHA-образом; `maxSurge=0`, `maxUnavailable=1` ограничивают обновление двумя подами. |
+| API: `password authentication failed for user "postgres"` | CI обновил Secret, а пароль уже запущенной БД остался от локальной проверки 2.3. | Пароль роли согласован с Secret через `ALTER ROLE`, данные сохранены. После перезапуска обе реплики готовы. |
 
 ## Команды из терминала
 
