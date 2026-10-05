@@ -12,7 +12,7 @@
 | 2.3. Загрузка по алиасу и откат | [Лог проверки](artifacts/hw3/rollback.log), [champion в UI](images/hw3/rollback_alias.png) | `/health`: `my-service-v6` → `my-service-v4`. **75.101 с** от подтверждения в UI до первого ответа v4, включая паузу проверки разрешения. Образ не менялся. |
 | 2.4. Deploy через self-hosted runner | [Зелёный deploy](https://github.com/AnnAnsas/MLPro/actions/runs/37356634689/job/111921020313), [скрин deploy](images/hw3/deploy_success.png), [Runner name](images/hw3/deploy_runner_name.png), [Settings → Runners](images/hw3/runner_settings.png), [история запусков](images/hw3/workflow_runs.png) | `ci #40`, `main`, ручной запуск. Deploy — **38 с**, runner `sem3-kind`, метки `self-hosted, kind`. Smoke прошёл через Ingress. |
 | 2.5. Версии данных DVC | [Указатель](dataset/sensor_trends.csv.dvc), [push / diff / checkout / pull](artifacts/hw3/dvc.log), [MLflow v1](images/hw3/dvc_v1.png), [MLflow v2](images/hw3/dvc_v2.png) | Две версии в локальном remote. Откат и восстановление в чистом клоне проверены по MD5. Test F1: **0.74157 → 0.72924**. |
-| 2.6. Автомасштабирование | [HPA](k8s/hpa.yaml), [события](artifacts/hw3/hpa/describe.txt), [рост и снижение](artifacts/hw3/hpa/observations.log) | **2 → 4 → 2** реплики; оба события `SuccessfulRescale` зафиксированы. После нагрузки — 2 готовых пода. |
+| 2.6. Автомасштабирование | [k9s после нагрузки](images/hw3/k9s_hpa.png), [HPA](k8s/hpa.yaml), [события](artifacts/hw3/hpa/describe.txt), [рост и снижение](artifacts/hw3/hpa/observations.log) | **2 → 4 → 2** реплики; оба события `SuccessfulRescale` зафиксированы. После нагрузки — 2 готовых пода; на скрине k9s CPU 9% при цели 60%, границы 2–4. |
 | 2.6. 10 пользователей, 60 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 2–4; p95 **79 мс**; CPU/под в среднем **214m**, диапазон 66–751m; память 291–395 МиБ; ошибок 0. |
 | 2.6. 30 пользователей, 120 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 4; p95 **28 мс**; CPU/под в среднем **91m**, диапазон 41–154m; память 292–325 МиБ; ошибок 0. |
 | 2.6. 60 пользователей, 240 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 4; p95 **34 мс**; CPU/под в среднем **126m**, диапазон 65–183m; память 296–335 МиБ; ошибок 0. |
@@ -28,6 +28,24 @@
 | Deploy: поды `Pending`, `Insufficient memory` | Запрошено 3490 МиБ из ~3916; новые поды требовали ещё по 1 ГиБ. `apply` и `set image` создавали два ReplicaSet. | Airflow остановлен. CI применяет Deployment сразу с SHA-образом; `maxSurge=0`, `maxUnavailable=1` ограничивают обновление двумя подами. |
 | API: `password authentication failed for user "postgres"` | CI обновил Secret, а пароль уже запущенной БД остался от локальной проверки 2.3. | Пароль роли согласован с Secret через `ALTER ROLE`, данные сохранены. После перезапуска обе реплики готовы. |
 | HPA: `FailedGetResourceMetric` при запуске | Для новых подов ещё не было метрик CPU. | После первого сбора HPA получил метрики и увеличил число реплик; ручное исправление не потребовалось. |
+
+## Ответы на вопросы
+
+1. **Почему tests и build в GitHub, а deploy локально?** Тестам и сборке достаточно кода и зависимостей, а облачный runner не видит kind на ноутбуке за NAT. Альтернативы — VPN, туннель или GitOps-агент внутри кластера; self-hosted runner проще для локальной домашки и сам подключается к GitHub.
+
+2. **Зачем runner сеть kind, Docker socket и group-add 0?** Сеть `kind` даёт доступ к узлу и API кластера, Docker socket — возможность загрузить образ в kind через Docker хоста. `--group-add 0` даёт доступ к сокету с группой root; без этих настроек возможны ошибки соединения с кластером или `permission denied` при обращении к Docker.
+
+3. **Зачем dry-run и apply для Secret?** `--dry-run=client -o yaml` формирует манифест, а `apply` создаёт Secret или обновляет существующий. Обычный `create secret` при повторном деплое завершится ошибкой `AlreadyExists`.
+
+4. **Чем challenger отличается от champion?** Challenger — последний кандидат, champion — модель, прошедшая гейт и выбранная для сервиса. Алиас позволяет переключить модель без изменения образа: у нас откат v6 → v4 занял 75.101 с с учётом паузы проверки разрешения; `rollout undo` откатывает шаблон Deployment, но не алиас MLflow.
+
+5. **Что будет без обученной модели?** При заданном `MODEL_NAME` загрузка модели или алиаса завершится ошибкой, сервис не станет готовым. В k9s будут перезапуски и затем `CrashLoopBackOff`, в логах пода — ошибка реестра, в CI — ожидание rollout и таймаут деплоя.
+
+6. **Как запрос доходит до MLflow?** `mlflow.localhost:80` → проброс kind на порт узла `30080` → Traefik → Ingress → Service MLflow:5000 → под:5000. `allowed-hosts` разрешает имена в заголовке Host, CORS — обращения браузера с указанного origin; проброс порта 80 задаётся при создании контейнера узла kind, одним Ingress его добавить нельзя.
+
+7. **Как HPA рассчитал число реплик?** Формула: `ceil(текущие реплики × текущий CPU% / целевой CPU%)`; в замере при двух репликах и 95% CPU получилось `ceil(2 × 95 / 60) = 4`, столько HPA и запросил. При четырёх репликах и 109% формула даёт 8, но наш максимум — 4; снижение задержало стандартное окно стабилизации 300 с, после чего число реплик вернулось к двум.
+
+8. **Где лежат данные и как восстановить версию N?** В Git лежат указатель `.csv.dvc`, настройки и код; CSV хранится в DVC-кэше и remote `../dvc-storage`. Для модели N нужно открыть её run в MLflow, взять `data_md5`, найти коммит с таким MD5 в указателе, восстановить указатель через `git checkout <коммит> -- dataset/sensor_trends.csv.dvc` и выполнить `uv run dvc pull`; MD5 полученного CSV должен совпасть с параметром прогона.
 
 ## Команды из терминала
 
