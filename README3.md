@@ -1,42 +1,24 @@
-# Домашняя работа 3 — модель из реестра в своём кластере
+# Домашняя работа 3
 
-## 1. Платформа в kind (пункт 2.1)
+## Отчёт
 
-Создан кластер `sem3` из [kind-config.yaml](platform/kind-config.yaml): порт `127.0.0.1:80` проброшен на `30080` узла, где принимает запросы Traefik. MLflow 3.16.1 открывается по адресу `http://mlflow.localhost` в режиме **Model training**. Прогонов обучения пока нет.
-
-| Пункт задания | Ссылка или скрин | Результат |
+| Пункт | Подтверждение | Результат |
 |---|---|---|
-| Поды и Ingress | [Вывод kubectl](images/hw3/get_pods_ingress.png) | Все показанные поды — `1/1 Running`; Ingress используют класс `traefik`, порт 80. |
-| MLflow в режиме Model training | [Интерфейс MLflow](images/hw3/mlflow.png) | Страница эксперимента Default открывается через Ingress. |
-| Настройки MLflow | [mlflow.yaml](platform/mlflow.yaml) | Заданы allowed hosts, CORS и отключение фоновых GenAI-задач. |
+| 2.1. Платформа | [Поды и Ingress](images/hw3/get_pods_ingress.png), [MLflow](images/hw3/mlflow.png), [манифест](platform/mlflow.yaml) | Кластер `sem3`, порт 80 → Traefik:30080. Поды готовы, MLflow открыт в Model training. Allowed hosts, CORS и отключение GenAI-воркеров заданы. |
+| 2.2. Модель и гейт | [После второго запуска](images/hw3/aliases_after_second.png), [после третьего](images/hw3/aliases_after_third.png), [решения гейта](artifacts/hw3/three_runs.json) | Tiny Transformer из ноутбука. В MLflow сохранены параметры, метрики, `data_md5`, `metadata.json`, матрица ошибок JSON/SVG. |
+| 2.2. Запуск 1: 7 эпох, v4 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/df2c6a87957b40f0bf8f7660a787bb5b), [лог](artifacts/hw3/train_epochs_7.log) | Validation F1 **0.77848**, test F1 **0.71895**. Получила champion и challenger. |
+| 2.2. Запуск 2: 1 эпоха, v5 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/f9c9ba57a71149c6b947d38e00cb6fe5), [лог](artifacts/hw3/train_epochs_1.log) | Validation F1 **0.66667**, test F1 **0.66667**. Только challenger; champion остался v4. |
+| 2.2. Запуск 3: 8 эпох, v6 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/06a24a5c6be64c43a2ad505717492b62), [лог](artifacts/hw3/train_epochs_8.log) | Validation F1 **0.83045**, test F1 **0.74157**. Забрала champion: 0.83045 > 0.77848 + 0.01. |
 
-В манифесте MLflow:
-
-```yaml
-- --allowed-hosts=mlflow.mlops*,mlflow.localhost*,localhost*,127.0.0.1*
-- --cors-allowed-origins=http://mlflow.localhost
-```
-
-```yaml
-env:
-  - {name: MLFLOW_SERVER_ENABLE_JOB_EXECUTION, value: "false"}
-```
-
-### Поды и Ingress
-
-![Поды и Ingress кластера sem3](images/hw3/get_pods_ingress.png)
-
-### MLflow
-
-![MLflow в режиме Model training](images/hw3/mlflow.png)
 
 ## Журнал проблем
 
-| Что не получилось / ошибка | Как найдена причина | Исправление и результат |
+| Ошибка | Причина / диагностика | Исправление |
 |---|---|---|
-| `helm --version`: `bash: helm: command not found` | Терминал не нашёл Helm. | Установлен через `brew install helm`. Проверка `helm version` показала `v4.3.0`. |
-| `TLS handshake timeout`; controller-manager в `CrashLoopBackOff`, scheduler перезапускался | При диагностике Docker было доступно 3916 МиБ RAM, оставалось около 568–587 МиБ доступной памяти, использовался swap. Это указывает на давление на память; OOM по логам не подтверждён. | Airflow и мониторинг уменьшены до 0 реплик, Docker Desktop перезапущен. После остановки оператора Prometheus повторно уменьшен до 0. Все оставшиеся поды стали готовы, доступно 2243 МиБ. Airflow затем возвращён к 1 реплике: `1/1 Running`, доступно 1054 МиБ. Мониторинг оставлен выключенным. |
-| Первые команды `kubectl scale` также завершались `TLS handshake timeout`; после `scaled` поды ещё работали | API отвечал нестабильно, controller-manager продолжал падать и не применял желаемое число реплик. | Команды повторены; после перезапуска Docker контроллер восстановился и поды остановились. |
+| `helm: command not found` | Helm не установлен. | `brew install helm`; `helm version` → 4.3.0. |
+| `TLS handshake timeout`, `CrashLoopBackOff` системных подов | Из 3916 МиБ доступно около 580 МиБ, используется swap. Давление на память; OOM не подтверждён. | Мониторинг и Airflow остановлены, Docker перезапущен. Все поды восстановились; после возврата Airflow доступно около 1054 МиБ. Мониторинг выключен. |
+| После `kubectl scale` поды не останавливались | Controller-manager падал и не применял число реплик. | После перезапуска Docker команды отработали; Prometheus повторно уменьшен до 0 после остановки оператора. |
+| `Registered model alias champion not found` | [Первый прогон](http://mlflow.localhost/#/experiments/1/runs/9623d9d340124b2496500ca5f3a02bcd) обращался к ещё отсутствующему алиасу. | Добавлена проверка `get_registered_model().aliases`; следующий запуск завершился успешно. |
 
 ## Команды из терминала
 
@@ -75,7 +57,7 @@ kubectl apply -f platform/mlflow.yaml
 kubectl apply -f platform/airflow.yaml
 ```
 
-Установка мониторинга. `upgrade --install` обновляет существующий релиз или создаёт новый; `-n` задаёт namespace, `-f` — файл настроек, `--wait` ждёт готовности, `--timeout 15m` ограничивает ожидание:
+Установка мониторинга с настройками проекта и ожиданием до 15 минут:
 
 ```bash
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
@@ -110,3 +92,14 @@ kubectl apply -f platform/ingress.yaml
 | `kubectl scale deployment --all -n monitoring --replicas=0` | Останавливает Deployment мониторинга, включая Grafana и оператор Prometheus. |
 | `kubectl scale statefulset --all -n monitoring --replicas=0` | Останавливает StatefulSet Prometheus; PVC не удаляется этой командой. |
 
+### Обучение: три запуска
+
+`EPOCHS` задаёт число эпох. Команды выполнены последовательно:
+
+```bash
+MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=7 uv run python -m my_service.train
+MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=1 uv run python -m my_service.train
+MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=8 uv run python -m my_service.train
+```
+
+Повтор при существующем champion v6 не повторит исходный сценарий: кандидаты будут сравниваться с ним.
