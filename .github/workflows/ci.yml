@@ -2,24 +2,31 @@ name: ci
 on:
   push: {branches: [main]}
   pull_request:
+  workflow_dispatch:
+    inputs:
+      kind_cluster:
+        description: "Имя локального kind-кластера"
+        required: true
+        default: sem3
+        type: string
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   tests:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:16
-        env: {POSTGRES_PASSWORD: test, POSTGRES_DB: my_service}
+        env: {POSTGRES_PASSWORD: test, POSTGRES_DB: my-service}
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 3s --health-retries 10
-      
     env:
-      DATABASE_URL: postgresql://postgres:test@localhost:5432/my_service
-
-
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/my-service
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -31,10 +38,8 @@ jobs:
   build:
     needs: tests
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04-arm
     permissions: {contents: read, packages: write}
-
     steps:
       - uses: actions/checkout@v7
       - name: Set image tag
@@ -47,22 +52,26 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses:  docker/setup-buildx-action@v4
-      - uses:  docker/build-push-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v4
         with:
           context: .
           push: true
+          platforms: linux/arm64
           tags: ${{ env.IMAGE }}
-          cache-from: type=gha 
+          cache-from: type=gha
           cache-to: type=gha,mode=max
-
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
-
+    # джоба идёт не в облаке GitHub, а на runner в Docker на машине с kind
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, kind]
+    concurrency: {group: deploy-kind}
+    timeout-minutes: 10
     permissions: {contents: read, packages: read}
-
+    env:
+      KIND_CLUSTER: ${{ inputs.kind_cluster }}
     steps:
       - uses: actions/checkout@v7
       - name: Set image tag
@@ -76,61 +85,87 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: kind, kubectl и доступ к кластеру
+        run: |
+          B="$HOME/.local/bin"
+          mkdir -p "$B"
+          echo "$B" >> "$GITHUB_PATH"
+          case "$(uname -m)" in
+            aarch64|arm64) ARCH=arm64 ;;
+            x86_64) ARCH=amd64 ;;
+            *) echo "Unsupported architecture"; exit 1 ;;
+          esac
+          curl --fail -sSLo "$B/kind" "https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-$ARCH"
+          curl --fail -sSLo "$B/kubectl" "https://dl.k8s.io/v1.37.0/bin/linux/$ARCH/kubectl"
+          chmod +x "$B/kind" "$B/kubectl"
+          "$B/kind" export kubeconfig --name "$KIND_CLUSTER" --internal
+          "$B/kubectl" get nodes
 
-      - uses: helm/kind-action@v1
-        with: {cluster_name: ci}
-
-      - name: image to cluster
+      - name: образ в кластер
         run: |
           docker pull "$IMAGE"
-          kind load docker-image "$IMAGE" --name ci
+          kind load docker-image "$IMAGE" --name "$KIND_CLUSTER"
 
-      - name: load secrets
+      - name: подтягиваем секреты
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
+          test -n "$DB_PASSWORD" || { echo "DB_PASSWORD is not set"; exit 1; }
           kubectl create secret generic my-service-secrets \
           --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" \
-          --from-literal=DATABASE_URL="postgresql://postgres:$DB_PASSWORD@postgres:5432/my-service"
-      
-      - name: base
+          --from-literal=DATABASE_URL="postgresql://postgres:$DB_PASSWORD@postgres:5432/my-service" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: база
         run: |
           kubectl apply -f k8s/postgres.yaml
           kubectl rollout status deploy/postgres --timeout=180s
-      
-      - name: service
+
+      - name: сервис
         run: |
           kubectl apply -f k8s/
+          kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
+          kubectl apply -f platform/ingress.yaml
           kubectl set image deploy/my-service api="$IMAGE"
-          kubectl rollout status deploy/my-service --timeout=120s
+          kubectl rollout status deploy/my-service --timeout=180s
 
       - name: smoke
+        # через Ingress, как ходят пользователи: из сети kind узел виден по имени, Traefik слушает NodePort 30080
         run: |
-          kubectl port-forward svc/my-service 8080:80 &
-          sleep 5
+          U="http://$KIND_CLUSTER-control-plane:30080"; H="Host: my-service.localhost"
 
-          curl --fail -s localhost:8080/health; echo
-          curl --fail -s -X POST localhost:8080/v1/predict \
-            -H "Content-Type: application/json" -d @example.json \
-            | python3 -c "import json,sys; r=json.load(sys.stdin); print(r); assert 0 <= r['score'] <= 1, r"
-          
-          sleep 2
+          curl --fail -sS --retry 5 --retry-all-errors -H "$H" "$U/health" > health.json
+          cat health.json
+          jq -e '.status == "ok" and (.model_version | startswith("my-service-v")) and .model_path == "models:/my-service@champion"' health.json
 
-          kubectl exec deploy/postgres -- psql -U postgres -d my-service \
-            -tc "SELECT count(*) FROM predictions" | grep -q 1
-      
-      - name: diagnostics
-        if: failure()
-        shell: bash
-        run: |
-          kubectl get deployments,replicasets,pods -o wide --request-timeout=20s || true
-          kubectl describe pods --request-timeout=20s || true
-          kubectl get events --sort-by=.metadata.creationTimestamp --request-timeout=20s || true
+          curl --fail -sS -X POST -H "$H" "$U/v1/predict" \
+            -H "Content-Type: application/json" -d @example.json > pred.json
+          cat pred.json
+          python3 - <<'PYTHON'
+          import json
+          from uuid import UUID
+          health = json.load(open("health.json"))
+          result = json.load(open("pred.json"))
+          UUID(result["request_id"])
+          assert result["model_version"] == health["model_version"], result
+          assert result["prediction"] == 1, result  # example.json: растущий сигнал
+          assert 0 <= result["score"] <= 1, result
+          PYTHON
 
-          for pod in $(kubectl get pods -o name --request-timeout=20s); do
-            echo "::group::Logs: $pod"
-            kubectl logs "$pod" --all-containers=true --prefix=true --tail=100 --request-timeout=20s || true
-            echo "Previous container logs: $pod"
-            kubectl logs "$pod" --all-containers=true --prefix=true --previous --tail=100 --request-timeout=20s || true
-            echo "::endgroup::"
+          RID=$(jq -r .request_id pred.json)
+          for attempt in 1 2 3 4 5; do
+            COUNT=$(kubectl exec deploy/postgres -- psql -U postgres -d my-service \
+              -tAc "SELECT count(*) FROM predictions WHERE request_id = '$RID'")
+            [ "$COUNT" = 1 ] && break
+            sleep 1
           done
+          test "$COUNT" = 1
+
+      - name: диагностика
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide
+          kubectl -n mlops get secrets
+          kubectl get ingress -A
+          kubectl describe deploy/my-service | tail -20
+          kubectl logs deploy/my-service --tail=50 || true

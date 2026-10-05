@@ -1,0 +1,64 @@
+Пункт 2.3: champion v6 -> v4 через UI MLflow.
+Время включает паузу автоматической проверки разрешения перед rollout restart.
+
+До отката: GET http://my-service.localhost/health
+{"status":"ok","model_version":"my-service-v6","model_path":"models:/my-service@champion"}
+
+Перезапуск подов
+deployment.apps/my-service restarted
+Waiting for deployment spec update to be observed...
+Waiting for deployment "my-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "my-service" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "my-service" rollout to finish: 1 old replicas are pending termination...
+deployment "my-service" successfully rolled out
+
+
+После отката: GET http://my-service.localhost/health
+{
+  "status": "ok",
+  "model_version": "my-service-v4",
+  "model_path": "models:/my-service@champion"
+}
+
+
+Замер от подтверждения Save aliases в UI (Enter)
+{
+  "unix_seconds": 1791222688.843,
+  "action": "MLflow UI: Save aliases via Enter; champion v6 -> v4",
+  "elapsed_seconds": 75.101,
+  "health": {
+    "status": "ok",
+    "model_version": "my-service-v4",
+    "model_path": "models:/my-service@champion"
+  }
+}
+
+
+Проверка образа, предсказания и записи в БД
+{
+  "before": [
+    {
+      "pod": "my-service-5b55dff746-mwwfw",
+      "image": "docker.io/library/my-service:hw3-alias",
+      "imageID": "docker.io/library/import-2026-10-05@sha256:540c6b93c5eff918a9c2b0ac70ec9376403e1918bd3124a09858b5872e25dcc4"
+    }
+  ],
+  "after": [
+    {
+      "pod": "my-service-b95d76c58-j8xmx",
+      "image": "docker.io/library/my-service:hw3-alias",
+      "imageID": "docker.io/library/import-2026-10-05@sha256:540c6b93c5eff918a9c2b0ac70ec9376403e1918bd3124a09858b5872e25dcc4"
+    }
+  ],
+  "same_image": true,
+  "prediction": {
+    "request_id": "601c8a06-ae69-4dde-a627-12035b312520",
+    "model_version": "my-service-v4",
+    "prediction": 1,
+    "score": 0.3327317237854004,
+    "latency_ms": 324.88
+  },
+  "db_rows_for_request_id": 1
+}
+
+
