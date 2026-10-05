@@ -123,10 +123,10 @@ jobs:
 
       - name: сервис
         run: |
-          kubectl apply -f k8s/
+          kubectl apply -f k8s/configmap.yaml -f k8s/service.yaml
           kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
           kubectl apply -f platform/ingress.yaml
-          kubectl set image deploy/my-service api="$IMAGE"
+          kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
 
       - name: smoke
@@ -167,5 +167,6 @@ jobs:
           kubectl get pods -A -o wide
           kubectl -n mlops get secrets
           kubectl get ingress -A
-          kubectl describe deploy/my-service | tail -20
-          kubectl logs deploy/my-service --tail=50 || true
+          kubectl describe pods -l app=my_service || true
+          kubectl get events --sort-by=.metadata.creationTimestamp | tail -30 || true
+          kubectl logs -l app=my_service --all-containers --prefix --tail=50 || true
