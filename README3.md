@@ -9,6 +9,7 @@
 | 2.2. Запуск 1: 7 эпох, v4 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/df2c6a87957b40f0bf8f7660a787bb5b), [лог](artifacts/hw3/train_epochs_7.log) | Validation F1 **0.77848**, test F1 **0.71895**. Получила champion и challenger. |
 | 2.2. Запуск 2: 1 эпоха, v5 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/f9c9ba57a71149c6b947d38e00cb6fe5), [лог](artifacts/hw3/train_epochs_1.log) | Validation F1 **0.66667**, test F1 **0.66667**. Только challenger; champion остался v4. |
 | 2.2. Запуск 3: 8 эпох, v6 | [Прогон](http://mlflow.localhost/#/experiments/1/runs/06a24a5c6be64c43a2ad505717492b62), [лог](artifacts/hw3/train_epochs_8.log) | Validation F1 **0.83045**, test F1 **0.74157**. Забрала champion: 0.83045 > 0.77848 + 0.01. |
+| 2.3. Загрузка по алиасу и откат | [Лог проверки](artifacts/hw3/rollback.log), [champion в UI](images/hw3/rollback_alias.png) | `/health`: `my-service-v6` → `my-service-v4`. **75.101 с** от подтверждения в UI до первого ответа v4, включая паузу проверки разрешения. Образ не менялся. |
 
 
 ## Журнал проблем
@@ -103,3 +104,32 @@ MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=8 uv run python -m my_service
 ```
 
 Повтор при существующем champion v6 не повторит исходный сценарий: кандидаты будут сравниваться с ним.
+
+
+### 2.3. Сервис и откат
+
+`model_store.load_model()` получает версию по `MODEL_NAME` / `MODEL_ALIAS` и загружает модель и metadata из одного прогона. Без `MODEL_NAME` используется локальный бандл; 20 тестов без MLflow прошли. `/health` показывает загруженную версию и источник модели.
+
+Для локальной проверки собран `my-service:hw3-alias`, запущены PostgreSQL и одна реплика API. В ConfigMap кластера заданы `MODEL_NAME=my-service`, `MODEL_ALIAS=champion`, `MLFLOW_TRACKING_URI=http://mlflow.mlops.svc.cluster.local:5000`. Эти локальные настройки не внесены в общий ConfigMap: текущий CI ещё создаёт кластер без MLflow (пункт 2.4 впереди).
+
+Локальные настройки применены к ConfigMap кластера (не к файлу):
+
+```bash
+kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
+```
+
+В **Model registry → my-service → Version 4 → Add aliases** выбран `champion`, затем подтверждён **Save aliases** клавишей Enter. Это предыдущий champion; v5 гейт не прошла. После смены алиаса выполнено:
+
+```bash
+kubectl rollout restart deploy/my-service
+kubectl rollout status deploy/my-service --timeout=120s
+curl --fail --silent http://my-service.localhost/health
+```
+
+До: `{"status":"ok","model_version":"my-service-v6","model_path":"models:/my-service@champion"}`.
+
+После: `{"status":"ok","model_version":"my-service-v4","model_path":"models:/my-service@champion"}`.
+
+Замер — **75.101 с**, опрос `/health` каждые 0.5 с. Перезапуск задержала автоматическая проверка разрешения; после команды «продолжи» он завершился. Это полное время эксперимента, не чистое время старта пода. ImageID до и после одинаковый: `sha256:540c6b93c5eff918a9c2b0ac70ec9376403e1918bd3124a09858b5872e25dcc4`. Предсказание вернуло v4, в БД найдена одна строка с его request_id.
+
+Airflow временно останавливался на время сборки и развёртывания, затем восстановлен. Итог: API, PostgreSQL, Airflow, MLflow и системные поды — `1/1 Running`.

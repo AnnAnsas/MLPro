@@ -104,7 +104,10 @@ def health() -> dict:
     return {
         "status": "ok",
         "model_version": getattr(app.state, "version", None),
-        "model_path": settings.model_path,
+        "model_path": (
+            f"models:/{settings.model_name}@{settings.model_alias}"
+            if settings.model_name else settings.model_path
+        ),
     }
 
 @app.get("/ready")
