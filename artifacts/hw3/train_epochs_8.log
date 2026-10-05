@@ -1,0 +1,24 @@
+2026/10/05 20:06:42 INFO mlflow.agent.hint: Load the `instrumenting-with-mlflow-tracing` skill at /Users/sabel/Documents/MLPro/.venv/lib/python3.11/site-packages/mlflow/assistant/skills/instrumenting-with-mlflow-tracing/SKILL.md before writing any tracing code; it ships with this MLflow install. Set MLFLOW_DISABLE_AGENT_HINT=1 to silence this.
+2026/10/05 20:06:51 INFO mlflow.utils.uv_utils: Detected uv project: found uv.lock and pyproject.toml in /Users/sabel/Documents/MLPro
+2026/10/05 20:06:51 WARNING mlflow.sklearn: Saving scikit-learn models in the pickle or cloudpickle format requires exercising caution because these formats rely on Python's object serialization mechanism, which can execute arbitrary code during deserialization. The recommended safe alternative is the 'skops' format. For more information, see: https://scikit-learn.org/stable/model_persistence.html
+2026/10/05 20:06:51 INFO mlflow.utils.uv_utils: Detected uv project: found uv.lock and pyproject.toml in /Users/sabel/Documents/MLPro
+2026/10/05 20:06:51 INFO mlflow.utils.environment: Detected uv project at /Users/sabel/Documents/MLPro. Attempting to export requirements via 'uv export'.
+2026/10/05 20:06:51 INFO mlflow.utils.uv_utils: Exported 67 dependencies via uv
+2026/10/05 20:06:51 INFO mlflow.utils.environment: Successfully exported 67 requirements from uv project. Skipping package capture based inference.
+2026/10/05 20:06:51 INFO mlflow.utils.uv_utils: Extracted 1 private index URL(s) from uv.lock
+2026/10/05 20:06:51 WARNING mlflow.utils.uv_utils: Private package indexes detected in uv lockfile. Ensure credentials are available at model load time via UV_INDEX_* environment variables or .netrc file.
+2026/10/05 20:06:52 WARNING mlflow.utils.environment: Failed to resolve installed pip version. ``pip`` will be added to conda.yaml environment spec without a version specifier.
+Registered model 'my-service' already exists. Creating a new version of this model...
+2026/10/05 20:06:52 INFO mlflow.store.model_registry.abstract_store: Waiting up to 300 seconds for model version to finish creation. Model name: my-service, version 6
+Created version '6' of model 'my-service'.
+epoch 01/8: loss=0.7004
+epoch 02/8: loss=0.6949
+epoch 03/8: loss=0.6955
+epoch 04/8: loss=0.6946
+epoch 05/8: loss=0.6946
+epoch 06/8: loss=0.6894
+epoch 07/8: loss=0.6588
+epoch 08/8: loss=0.5461
+🏃 View run my-service-epochs-8 at: http://mlflow.localhost/#/experiments/1/runs/06a24a5c6be64c43a2ad505717492b62
+🧪 View experiment at: http://mlflow.localhost/#/experiments/1
+{"run_id": "06a24a5c6be64c43a2ad505717492b62", "version": "6", "f1": 0.7415730337078652, "accuracy": 0.7444444444444445, "roc_auc": 0.8352263374485597, "validation_f1": 0.8304498269896193, "threshold": 0.42500000000000004, "champion_before": "4", "champion_f1_before": 0.7784810126582279, "promoted": true, "epochs": 8, "min_gain": 0.01, "aliases_after": {"challenger": "6", "champion": "6"}, "data_md5": "6d54f179e1394a7c600d6485838aceee"}

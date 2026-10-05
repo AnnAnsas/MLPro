@@ -1,0 +1,59 @@
+[
+  {
+    "run_id": "df2c6a87957b40f0bf8f7660a787bb5b",
+    "version": "4",
+    "f1": 0.7189542483660131,
+    "accuracy": 0.6814814814814815,
+    "roc_auc": 0.7990672153635117,
+    "validation_f1": 0.7784810126582279,
+    "threshold": 0.325,
+    "champion_before": null,
+    "champion_f1_before": null,
+    "promoted": true,
+    "epochs": 7,
+    "min_gain": 0.01,
+    "aliases_after": {
+      "challenger": "4",
+      "champion": "4"
+    },
+    "data_md5": "6d54f179e1394a7c600d6485838aceee"
+  },
+  {
+    "run_id": "f9c9ba57a71149c6b947d38e00cb6fe5",
+    "version": "5",
+    "f1": 0.6666666666666666,
+    "accuracy": 0.5,
+    "roc_auc": 0.5791495198902606,
+    "validation_f1": 0.6666666666666666,
+    "threshold": 0.475,
+    "champion_before": "4",
+    "champion_f1_before": 0.7784810126582279,
+    "promoted": false,
+    "epochs": 1,
+    "min_gain": 0.01,
+    "aliases_after": {
+      "challenger": "5",
+      "champion": "4"
+    },
+    "data_md5": "6d54f179e1394a7c600d6485838aceee"
+  },
+  {
+    "run_id": "06a24a5c6be64c43a2ad505717492b62",
+    "version": "6",
+    "f1": 0.7415730337078652,
+    "accuracy": 0.7444444444444445,
+    "roc_auc": 0.8352263374485597,
+    "validation_f1": 0.8304498269896193,
+    "threshold": 0.42500000000000004,
+    "champion_before": "4",
+    "champion_f1_before": 0.7784810126582279,
+    "promoted": true,
+    "epochs": 8,
+    "min_gain": 0.01,
+    "aliases_after": {
+      "challenger": "6",
+      "champion": "6"
+    },
+    "data_md5": "6d54f179e1394a7c600d6485838aceee"
+  }
+]
