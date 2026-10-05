@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse
 
 from my_service import db
 from my_service.config import settings
-from my_service.model_loader import load_model
+from my_service.model_store import load_model
 
 SensorValue = FiniteFloat | None
 
@@ -39,15 +39,13 @@ class Prediction(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    bundle = load_model(settings.model_path)
-    app.state.pipeline = bundle["pipeline"]
-    app.state.meta = bundle["metadata"]
-    app.state.version = bundle["metadata"]["model_version"]
+    app.state.pipeline, app.state.meta, app.state.version = load_model()
+    db.init()
+    try:
+        yield
+    finally:
+        app.state.pipeline = None
 
-    if settings.database_url:
-        db.init()
-    yield
-    app.state.pipeline = None
 
 
 app = FastAPI(title="MLPro_my_service", version="0.1.0", lifespan=lifespan)

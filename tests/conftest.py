@@ -17,6 +17,7 @@ def client(request):
         database_url = (
             os.getenv("DATABASE_URL") if request.node.get_closest_marker("integration") else None
         )
+        patch.setattr(settings, "model_name", None)
         patch.setattr(settings, "database_url", database_url)
         patch.setattr(settings, "model_path", str(model_path))
         with TestClient(app) as client:

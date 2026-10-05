@@ -3,5 +3,4 @@ kind: ConfigMap
 metadata:
   name: my-service-config
 data:
-  LOG_LEVEL: "INFO"
   MODEL_PATH: artifacts/tiny_sequence_transformer_v1.joblib
