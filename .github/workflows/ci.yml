@@ -125,7 +125,7 @@ jobs:
         run: |
           kubectl apply -f k8s/configmap.yaml -f k8s/service.yaml
           kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
-          kubectl apply -f platform/ingress.yaml
+          kubectl apply -f platform/ingress.yaml -f k8s/hpa.yaml
           kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
 
