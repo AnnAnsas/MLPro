@@ -1,0 +1,51 @@
+DVC 2.5 — 2026-10-05
+
+$ uv run dvc push  # v1, commit f6527be
+1 file pushed
+
+$ v2: очистка train
+{
+  "rule": "remove train windows with >5 missing sensor values",
+  "removed_windows": 72,
+  "windows_before": 1800,
+  "windows_after": 1728,
+  "validation_test_byte_identical": true,
+  "md5": "3b4320a5898d952f1657acd6663d423a"
+}
+
+$ uv run dvc push  # v2, commit 825fc7a
+1 file pushed
+
+$ uv run dvc diff HEAD~1  # после коммита v2
+Modified:
+    dataset/sensor_trends.csv
+
+files summary: 1 modified
+
+$ dvc checkout: v1, затем v2
+   Building my-service @ file:///Users/sabel/Documents/MLPro
+warning: `build_system.requires = ["uv-build>=0.10,<0.11"]` does not contain the current uv version 0.12.13
+      Built my-service @ file:///Users/sabel/Documents/MLPro
+Uninstalled 1 package in 32ms
+Installed 1 package in 7ms
+M       dataset/sensor_trends.csv
+v1 restored: 6d54f179e1394a7c600d6485838aceee
+M       dataset/sensor_trends.csv
+v2 restored: 3b4320a5898d952f1657acd6663d423a
+
+$ git clone --no-hardlinks; uv run --no-sync dvc pull
+Cloning into '/Users/sabel/Documents/MLPro-dvc-check-_5tv3e18'...
+done.
+CSV absent before dvc pull; clone has no DVC cache.
+A       dataset/sensor_trends.csv
+1 file fetched and 1 file added
+Clean clone: /Users/sabel/Documents/MLPro-dvc-check-_5tv3e18
+Restored bytes: 3799453; md5: 3b4320a5898d952f1657acd6663d423a
+
+MLflow v1: EPOCHS=8, experiment=my-service-dvc, model=my-service-data-v1
+{"run_id": "cc1a01bbe2064aceb0cce6405ad817cb", "version": "1", "f1": 0.7415730337078652, "accuracy": 0.7444444444444445, "roc_auc": 0.8352263374485597, "validation_f1": 0.8304498269896193, "threshold": 0.42500000000000004, "champion_before": null, "champion_f1_before": null, "promoted": true, "epochs": 8, "min_gain": 0.01, "aliases_after": {"challenger": "1", "champion": "1"}, "data_md5": "6d54f179e1394a7c600d6485838aceee"}
+
+MLflow v2: EPOCHS=8, experiment=my-service-dvc, model=my-service-data-v2
+{"run_id": "b6ecadace32c422ba3ef7f5188919855", "version": "1", "f1": 0.7292418772563177, "accuracy": 0.7222222222222222, "roc_auc": 0.8270507544581619, "validation_f1": 0.8098591549295775, "threshold": 0.375, "champion_before": null, "champion_f1_before": null, "promoted": true, "epochs": 8, "min_gain": 0.01, "aliases_after": {"challenger": "1", "champion": "1"}, "data_md5": "3b4320a5898d952f1657acd6663d423a"}
+
+Verification: pytest -m "not integration": 20 passed, 2 deselected; ruff check .: All checks passed.

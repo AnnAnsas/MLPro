@@ -1,0 +1,5 @@
+outs:
+- md5: 3b4320a5898d952f1657acd6663d423a
+  size: 3799453
+  hash: md5
+  path: sensor_trends.csv
