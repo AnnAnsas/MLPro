@@ -7,7 +7,7 @@ on:
       kind_cluster:
         description: "Имя локального kind-кластера"
         required: true
-        default: sem3-missing
+        default: sem3
         type: string
 
 defaults:
