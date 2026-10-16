@@ -4,3 +4,6 @@ metadata:
   name: my-service-config
 data:
   MODEL_PATH: artifacts/tiny_sequence_transformer_v1.joblib
+  MODEL_NAME: my-service
+  MODEL_ALIAS: champion
+  MLFLOW_TRACKING_URI: http://mlflow.mlops.svc.cluster.local:5000

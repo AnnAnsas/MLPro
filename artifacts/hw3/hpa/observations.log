@@ -1,0 +1,299 @@
+Timestamp / users (cooldown = no load) / current -> desired replicas / CPU utilization
+
+2026-10-05T22:07:03 10
+replicas 2 -> 4; CPU 95%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   103m         395Mi           
+my-service-5cd96794d4-j8crr   87m          323Mi
+
+2026-10-05T22:07:23 10
+replicas 4 -> 4; CPU 109%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   82m          326Mi           
+my-service-5cd96794d4-j8crr   136m         327Mi           
+my-service-5cd96794d4-lh2ld   751m         320Mi           
+my-service-5cd96794d4-lhmqj   657m         306Mi
+
+2026-10-05T22:07:43 10
+replicas 4 -> 4; CPU 82%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   66m          307Mi           
+my-service-5cd96794d4-j8crr   88m          298Mi           
+my-service-5cd96794d4-lh2ld   80m          295Mi           
+my-service-5cd96794d4-lhmqj   93m          291Mi
+
+2026-10-05T22:08:04 30
+replicas 4 -> 4; CPU 80%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   105m         320Mi           
+my-service-5cd96794d4-j8crr   41m          300Mi           
+my-service-5cd96794d4-lh2ld   87m          303Mi           
+my-service-5cd96794d4-lhmqj   87m          292Mi
+
+2026-10-05T22:08:24 30
+replicas 4 -> 4; CPU 92%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   72m          309Mi           
+my-service-5cd96794d4-j8crr   104m         306Mi           
+my-service-5cd96794d4-lh2ld   107m         299Mi           
+my-service-5cd96794d4-lhmqj   86m          318Mi
+
+2026-10-05T22:08:44 30
+replicas 4 -> 4; CPU 100%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   90m          306Mi           
+my-service-5cd96794d4-j8crr   66m          325Mi           
+my-service-5cd96794d4-lh2ld   154m         298Mi           
+my-service-5cd96794d4-lhmqj   91m          307Mi
+
+2026-10-05T22:09:05 30
+replicas 4 -> 4; CPU 101%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   84m          312Mi           
+my-service-5cd96794d4-j8crr   138m         321Mi           
+my-service-5cd96794d4-lh2ld   122m         293Mi           
+my-service-5cd96794d4-lhmqj   63m          297Mi
+
+2026-10-05T22:09:25 30
+replicas 4 -> 4; CPU 91%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   75m          313Mi           
+my-service-5cd96794d4-j8crr   107m         321Mi           
+my-service-5cd96794d4-lh2ld   95m          297Mi           
+my-service-5cd96794d4-lhmqj   89m          298Mi
+
+2026-10-05T22:09:45 30
+replicas 4 -> 4; CPU 79%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   63m          313Mi           
+my-service-5cd96794d4-j8crr   91m          317Mi           
+my-service-5cd96794d4-lh2ld   73m          297Mi           
+my-service-5cd96794d4-lhmqj   89m          298Mi
+
+2026-10-05T22:10:05 60
+replicas 4 -> 4; CPU 109%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   183m         333Mi           
+my-service-5cd96794d4-j8crr   100m         322Mi           
+my-service-5cd96794d4-lh2ld   91m          313Mi           
+my-service-5cd96794d4-lhmqj   65m          298Mi
+
+2026-10-05T22:10:26 60
+replicas 4 -> 4; CPU 176%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   125m         311Mi           
+my-service-5cd96794d4-j8crr   124m         327Mi           
+my-service-5cd96794d4-lh2ld   121m         296Mi           
+my-service-5cd96794d4-lhmqj   117m         299Mi
+
+2026-10-05T22:10:46 60
+replicas 4 -> 4; CPU 141%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   133m         324Mi           
+my-service-5cd96794d4-j8crr   151m         333Mi           
+my-service-5cd96794d4-lh2ld   160m         305Mi           
+my-service-5cd96794d4-lhmqj   122m         306Mi
+
+2026-10-05T22:11:06 60
+replicas 4 -> 4; CPU 136%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   136m         324Mi           
+my-service-5cd96794d4-j8crr   133m         335Mi           
+my-service-5cd96794d4-lh2ld   140m         310Mi           
+my-service-5cd96794d4-lhmqj   138m         307Mi
+
+2026-10-05T22:11:27 60
+replicas 4 -> 4; CPU 131%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   111m         316Mi           
+my-service-5cd96794d4-j8crr   111m         330Mi           
+my-service-5cd96794d4-lh2ld   114m         301Mi           
+my-service-5cd96794d4-lhmqj   128m         298Mi
+
+2026-10-05T22:11:47 60
+replicas 4 -> 4; CPU 116%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   117m         317Mi           
+my-service-5cd96794d4-j8crr   113m         330Mi           
+my-service-5cd96794d4-lh2ld   120m         301Mi           
+my-service-5cd96794d4-lhmqj   114m         297Mi
+
+2026-10-05T22:12:07 60
+replicas 4 -> 4; CPU 108%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   108m         316Mi           
+my-service-5cd96794d4-j8crr   112m         331Mi           
+my-service-5cd96794d4-lh2ld   107m         300Mi           
+my-service-5cd96794d4-lhmqj   106m         298Mi
+
+2026-10-05T22:12:28 60
+replicas 4 -> 4; CPU 112%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   122m         310Mi           
+my-service-5cd96794d4-j8crr   163m         328Mi           
+my-service-5cd96794d4-lh2ld   168m         311Mi           
+my-service-5cd96794d4-lhmqj   115m         320Mi
+
+2026-10-05T22:12:48 60
+replicas 4 -> 4; CPU 156%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   158m         315Mi           
+my-service-5cd96794d4-j8crr   131m         328Mi           
+my-service-5cd96794d4-lh2ld   168m         311Mi           
+my-service-5cd96794d4-lhmqj   169m         307Mi
+
+2026-10-05T22:13:08 60
+replicas 4 -> 4; CPU 128%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   125m         313Mi           
+my-service-5cd96794d4-j8crr   131m         328Mi           
+my-service-5cd96794d4-lh2ld   138m         311Mi           
+my-service-5cd96794d4-lhmqj   121m         306Mi
+
+2026-10-05T22:13:29 60
+replicas 4 -> 4; CPU 118%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   125m         312Mi           
+my-service-5cd96794d4-j8crr   109m         328Mi           
+my-service-5cd96794d4-lh2ld   124m         310Mi           
+my-service-5cd96794d4-lhmqj   117m         299Mi
+
+2026-10-05T22:13:49 60
+replicas 4 -> 4; CPU 113%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   111m         313Mi           
+my-service-5cd96794d4-j8crr   115m         322Mi           
+my-service-5cd96794d4-lh2ld   112m         299Mi           
+my-service-5cd96794d4-lhmqj   117m         299Mi
+
+2026-10-05T22:14:09 cooldown
+replicas 4 -> 4; CPU 90%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   106m         313Mi           
+my-service-5cd96794d4-j8crr   103m         321Mi           
+my-service-5cd96794d4-lh2ld   78m          299Mi           
+my-service-5cd96794d4-lhmqj   75m          296Mi
+
+2026-10-05T22:14:30 cooldown
+replicas 4 -> 4; CPU 10%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   9m           312Mi           
+my-service-5cd96794d4-j8crr   10m          321Mi           
+my-service-5cd96794d4-lh2ld   13m          295Mi           
+my-service-5cd96794d4-lhmqj   9m           295Mi
+
+2026-10-05T22:14:50 cooldown
+replicas 4 -> 4; CPU 11%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   11m          312Mi           
+my-service-5cd96794d4-j8crr   15m          322Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   12m          296Mi
+
+2026-10-05T22:15:10 cooldown
+replicas 4 -> 4; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   7m           312Mi           
+my-service-5cd96794d4-j8crr   7m           321Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   10m          295Mi
+
+2026-10-05T22:15:31 cooldown
+replicas 4 -> 4; CPU 10%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   7m           312Mi           
+my-service-5cd96794d4-j8crr   10m          322Mi           
+my-service-5cd96794d4-lh2ld   13m          295Mi           
+my-service-5cd96794d4-lhmqj   10m          295Mi
+
+2026-10-05T22:15:51 cooldown
+replicas 4 -> 4; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   10m          312Mi           
+my-service-5cd96794d4-j8crr   8m           322Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   7m           295Mi
+
+2026-10-05T22:16:11 cooldown
+replicas 4 -> 4; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   12m          312Mi           
+my-service-5cd96794d4-j8crr   8m           321Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   7m           295Mi
+
+2026-10-05T22:16:31 cooldown
+replicas 4 -> 4; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   8m           312Mi           
+my-service-5cd96794d4-j8crr   8m           321Mi           
+my-service-5cd96794d4-lh2ld   9m           295Mi           
+my-service-5cd96794d4-lhmqj   9m           296Mi
+
+2026-10-05T22:16:52 cooldown
+replicas 4 -> 4; CPU 10%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   12m          312Mi           
+my-service-5cd96794d4-j8crr   10m          321Mi           
+my-service-5cd96794d4-lh2ld   11m          295Mi           
+my-service-5cd96794d4-lhmqj   8m           296Mi
+
+2026-10-05T22:17:12 cooldown
+replicas 4 -> 4; CPU 9%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   7m           312Mi           
+my-service-5cd96794d4-j8crr   9m           321Mi           
+my-service-5cd96794d4-lh2ld   7m           295Mi           
+my-service-5cd96794d4-lhmqj   9m           295Mi
+
+2026-10-05T22:17:32 cooldown
+replicas 4 -> 4; CPU 9%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   7m           312Mi           
+my-service-5cd96794d4-j8crr   9m           321Mi           
+my-service-5cd96794d4-lh2ld   11m          295Mi           
+my-service-5cd96794d4-lhmqj   11m          295Mi
+
+2026-10-05T22:17:53 cooldown
+replicas 4 -> 4; CPU 13%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   10m          312Mi           
+my-service-5cd96794d4-j8crr   13m          321Mi           
+my-service-5cd96794d4-lh2ld   14m          295Mi           
+my-service-5cd96794d4-lhmqj   16m          296Mi
+
+2026-10-05T22:18:13 cooldown
+replicas 4 -> 4; CPU 9%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   6m           312Mi           
+my-service-5cd96794d4-j8crr   7m           321Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   6m           296Mi
+
+2026-10-05T22:18:33 cooldown
+replicas 4 -> 4; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   9m           312Mi           
+my-service-5cd96794d4-j8crr   9m           321Mi           
+my-service-5cd96794d4-lh2ld   8m           295Mi           
+my-service-5cd96794d4-lhmqj   8m           296Mi
+
+2026-10-05T22:18:53 cooldown
+replicas 4 -> 4; CPU 6%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   6m           312Mi           
+my-service-5cd96794d4-j8crr   7m           321Mi           
+my-service-5cd96794d4-lh2ld   7m           295Mi           
+my-service-5cd96794d4-lhmqj   7m           295Mi
+
+2026-10-05T22:19:14 cooldown
+replicas 4 -> 2; CPU 8%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   9m           312Mi           
+my-service-5cd96794d4-j8crr   8m           321Mi
+
+2026-10-05T22:19:34 cooldown
+replicas 2 -> 2; CPU 9%
+NAME                          CPU(cores)   MEMORY(bytes)   
+my-service-5cd96794d4-c5lb4   8m           311Mi           
+my-service-5cd96794d4-j8crr   10m          321Mi

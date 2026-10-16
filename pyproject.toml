@@ -26,6 +26,7 @@ dev = [
     "locust",
     "ruff",
     "ipykernel",
+    "dvc>=3.67.1",
 ]
 
 [build-system]
