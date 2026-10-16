@@ -16,7 +16,9 @@
 | 2.6. 10 пользователей, 60 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 2–4; p95 **79 мс**; CPU/под в среднем **214m**, диапазон 66–751m; память 291–395 МиБ; ошибок 0. |
 | 2.6. 30 пользователей, 120 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 4; p95 **28 мс**; CPU/под в среднем **91m**, диапазон 41–154m; память 292–325 МиБ; ошибок 0. |
 | 2.6. 60 пользователей, 240 с | [Замеры](artifacts/hw3/hpa/results.json) | Реплик 4; p95 **34 мс**; CPU/под в среднем **126m**, диапазон 65–183m; память 296–335 МиБ; ошибок 0. |
-| 2.7. Три поломки и починки | [Инцидент GitHub Actions](https://www.githubstatus.com/) | Пока не выполнено. 05.10.2026 job `tests` в PR #16 более 15 минут ожидал hosted runner (`ubuntu-latest`). С 22:11 МСК GitHub сообщил о деградации Actions; возможная причина задержки (images/hw3/github_actions_incident.png). |
+| 2.7. Три поломки и починки | [Инцидент GitHub Actions](https://www.githubstatus.com/), [скрин](images/hw3/github_actions_incident.png) | Пока не выполнено. 05.10.2026 job `tests` в PR #16 более 15 минут ожидал hosted runner (`ubuntu-latest`). С 22:11 МСК GitHub сообщил о деградации Actions; возможная причина задержки. |
+
+Для гейта выбрана **validation F1**, потому что целевой класс важнее общей доли правильных ответов. При сбалансированной выборке константный ответ `1` уже даёт F1 около **0.667** — это видно на v5, поэтому дополнительно сохраняется ROC-AUC: у v5 он **0.579**, у v4 и v6 — **0.799** и **0.835**. `MIN_GAIN=0.01` не пропускает случайное улучшение на несколько тысячных; порог классификации подбирается на validation, поэтому итоговое качество отдельно приводится на test.
 
 ## Журнал проблем
 
@@ -137,13 +139,7 @@ MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=8 uv run python -m my_service
 
 `model_store.load_model()` получает версию по `MODEL_NAME` / `MODEL_ALIAS` и загружает модель и metadata из одного прогона. Без `MODEL_NAME` используется локальный бандл; 20 тестов без MLflow прошли. `/health` показывает загруженную версию и источник модели.
 
-Для локальной проверки собран `my-service:hw3-alias`, запущены PostgreSQL и одна реплика API. В ConfigMap кластера заданы `MODEL_NAME=my-service`, `MODEL_ALIAS=champion`, `MLFLOW_TRACKING_URI=http://mlflow.mlops.svc.cluster.local:5000`. В пункте 2.4 эти настройки применяет CI к существующему кластеру `sem3`.
-
-Локальные настройки применены к ConfigMap кластера (не к файлу):
-
-```bash
-kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
-```
+Для локальной проверки собран `my-service:hw3-alias`, запущены PostgreSQL и одна реплика API. `MODEL_NAME=my-service`, `MODEL_ALIAS=champion` и внутренний адрес MLflow теперь записаны в [ConfigMap](k8s/configmap.yaml), который применяет CI. `MODEL_PATH` остаётся локальным fallback, когда `MODEL_NAME` не задан, например в тестах без MLflow.
 
 В **Model registry → my-service → Version 4 → Add aliases** выбран `champion`, затем подтверждён **Save aliases** клавишей Enter. Это предыдущий champion; v5 гейт не прошла. После смены алиаса выполнено:
 
@@ -166,7 +162,7 @@ curl --fail --silent http://my-service.localhost/health
 
 [Workflow](.github/workflows/ci.yml): tests и build выполняются в GitHub, deploy — в Docker-runner `sem3-kind` в сети `kind`. `workflow_dispatch` передаёт имя кластера, по умолчанию `sem3`. Образ — `ghcr.io/annansas/my-service:sha-a97c3d27b0257b12c0fb54672b0b4a75da1c890d`.
 
-Secret применяется через `--dry-run=client -o yaml | kubectl apply -f -`. Smoke идёт на `sem3-control-plane:30080` с `Host: my-service.localhost` и проверяет источник модели в `/health`, класс 1 для растущего сигнала из `example.json` и ровно одну строку в БД с полученным `request_id`.
+Secret применяется через `--dry-run=client -o yaml | kubectl apply -f -`. Smoke идёт на `sem3-control-plane:30080` с `Host: my-service.localhost`. Подготовленная проверка требует класс `1` для растущего `example.json`, класс `0` для test-окна с падающим трендом `example_negative.json`, одну версию модели в `/health` и обоих ответах и ровно по одной строке в БД для каждого `request_id`. Локально champion v4 вернула соответственно `1` со score **0.33273** и `0` со score **0.23237**; обе строки найдены в БД. Новый smoke ещё не запускался в CI.
 
 [GitHub API job](https://api.github.com/repos/AnnAnsas/MLPro/actions/jobs/111921020313) подтвердил `success`, `runner_name: sem3-kind` и успешный шаг smoke. На [скриншоте Set up job](images/hw3/deploy_runner_name.png) видна строка `Runner name: sem3-kind`. Скрин Settings → Actions → Runners показывает `sem3-kind`, Linux, ARM64, kind, статус Idle.
 

@@ -124,7 +124,6 @@ jobs:
       - name: сервис
         run: |
           kubectl apply -f k8s/configmap.yaml -f k8s/service.yaml
-          kubectl patch configmap my-service-config --type merge -p '{"data":{"MODEL_NAME":"my-service","MODEL_ALIAS":"champion","MLFLOW_TRACKING_URI":"http://mlflow.mlops.svc.cluster.local:5000"}}'
           kubectl apply -f platform/ingress.yaml -f k8s/hpa.yaml
           kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
@@ -139,27 +138,32 @@ jobs:
           jq -e '.status == "ok" and (.model_version | startswith("my-service-v")) and .model_path == "models:/my-service@champion"' health.json
 
           curl --fail -sS -X POST -H "$H" "$U/v1/predict" \
-            -H "Content-Type: application/json" -d @example.json > pred.json
-          cat pred.json
+            -H "Content-Type: application/json" -d @example.json > pred-positive.json
+          curl --fail -sS -X POST -H "$H" "$U/v1/predict" \
+            -H "Content-Type: application/json" -d @example_negative.json > pred-negative.json
+          cat pred-positive.json pred-negative.json
           python3 - <<'PYTHON'
           import json
           from uuid import UUID
           health = json.load(open("health.json"))
-          result = json.load(open("pred.json"))
-          UUID(result["request_id"])
-          assert result["model_version"] == health["model_version"], result
-          assert result["prediction"] == 1, result  # example.json: растущий сигнал
-          assert 0 <= result["score"] <= 1, result
+          for path, expected in (("pred-positive.json", 1), ("pred-negative.json", 0)):
+              result = json.load(open(path))
+              UUID(result["request_id"])
+              assert result["model_version"] == health["model_version"], result
+              assert result["prediction"] == expected, result
+              assert 0 <= result["score"] <= 1, result
           PYTHON
 
-          RID=$(jq -r .request_id pred.json)
-          for attempt in 1 2 3 4 5; do
-            COUNT=$(kubectl exec deploy/postgres -- psql -U postgres -d my-service \
-              -tAc "SELECT count(*) FROM predictions WHERE request_id = '$RID'")
-            [ "$COUNT" = 1 ] && break
-            sleep 1
+          for RESULT in pred-positive.json pred-negative.json; do
+            RID=$(jq -r .request_id "$RESULT"); COUNT=0
+            for attempt in 1 2 3 4 5; do
+              COUNT=$(kubectl exec deploy/postgres -- psql -U postgres -d my-service \
+                -tAc "SELECT count(*) FROM predictions WHERE request_id = '$RID'")
+              [ "$COUNT" = 1 ] && break
+              sleep 1
+            done
+            test "$COUNT" = 1
           done
-          test "$COUNT" = 1
 
       - name: диагностика
         if: failure()
