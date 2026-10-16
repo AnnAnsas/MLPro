@@ -39,7 +39,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: my-service.localhost
+    - host: my-service-broken.localhost
       http:
         paths:
           - path: /
