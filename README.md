@@ -104,6 +104,9 @@ MODEL_OUTPUT=/tmp/my-service.joblib \
 uv run --no-sync python -m my_service.train
 ```
 
+В Airflow тот же процесс запускает DAG `my_service_retrain`: данные проверяются,
+модель обучается с гейтом и выкатывается только после получения `champion`.
+
 ## Метрики
 
 Дашборд **My Service** доступен в Grafana. Трафик для панелей запускается через Ingress:

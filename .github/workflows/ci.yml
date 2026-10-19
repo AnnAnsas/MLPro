@@ -68,7 +68,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, kind]
     concurrency: {group: deploy-kind}
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions: {contents: read, packages: read}
     env:
       KIND_CLUSTER: ${{ inputs.kind_cluster }}
@@ -128,8 +128,15 @@ jobs:
           kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
 
-      - name: мониторинг
-        run: kubectl apply -f k8s/monitoring/
+      - name: мониторинг и DAG
+        run: |
+          kubectl apply -f k8s/monitoring/
+          kubectl -n mlops scale deployment/airflow --replicas=1
+          kubectl -n mlops rollout status deployment/airflow --timeout=300s
+          kubectl -n mlops create configmap airflow-dags --from-file=dags/ \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n mlops exec deploy/airflow -- \
+            airflow variables set my_service_image "$IMAGE"
 
       - name: smoke
         # через Ingress, как ходят пользователи: из сети kind узел виден по имени, Traefik слушает NodePort 30080
