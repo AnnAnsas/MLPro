@@ -106,8 +106,8 @@ spec:
             periodSeconds: 10
             failureThreshold: 30
           resources:
-            requests: {cpu: 250m, memory: 768Mi}
-            limits: {memory: 1536Mi}
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {memory: 1Gi}
       volumes:
         - name: dags
           configMap: {name: airflow-dags, optional: true}
