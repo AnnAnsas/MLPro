@@ -4,7 +4,9 @@
 
 | Пункт | Доказательство | Результат |
 |---|---|---|
-| 1. Платформа одной командой | [`platform/up.sh`](platform/up.sh), [`platform.log`](artifacts/hw4/platform.log) | Чистый запуск `sem4` занял 3 мин 57 с. Повторный запуск — 39 с. MLflow, Airflow, RustFS, Traefik, Prometheus и Grafana подняты; бакет `dvc` создан. |
+| 1. Платформа одной командой | [`platform/up.sh`](platform/up.sh), [`platform.log`](artifacts/hw4/platform.log), [`kubectl get pods -A`](images/hw4/kubectl_get_pods.png) | Чистый запуск `sem4` занял 3 мин 57 с. Повторный запуск — 39 с. MLflow, Airflow, RustFS, Traefik, Prometheus и Grafana подняты; бакет `dvc` создан. |
+
+![Все компоненты платформы в Running](images/hw4/kubectl_get_pods.png)
 
 ## Журнал проблем
 
@@ -12,4 +14,5 @@
 |---|---|---|
 | Grafana перезапускалась во время первого старта | Grafana 13 выполняла долгую миграцию SQLite и не укладывалась в стандартное окно liveness на ноутбуке с 8 ГБ | Зафиксирована Grafana 11.6.8, liveness отложена на 300 с, CPU ограничен `500m` |
 | После локального обучения kubelet медленно создавал поды | Docker использовал около 3,1 из 3,8 ГБ, macOS активно работала со swap | Для локального обучения временно остановлены Airflow и мониторинг; после обучения платформа восстановлена. Traefik получил ресурсы и менее строгие probe |
+| После длительной работы один CoreDNS временно стал `0/1` | Кластер занял около 2,9 из доступных Docker 3,8 ГБ, health-check не успел ответить | CoreDNS перезапущен; для освобождения памяти после проверки кластер останавливается |
 
