@@ -7,7 +7,7 @@ on:
       kind_cluster:
         description: "Имя локального kind-кластера"
         required: true
-        default: sem3
+        default: sem4
         type: string
 
 defaults:
@@ -37,7 +37,7 @@ jobs:
 
   build:
     needs: tests
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04-arm
     permissions: {contents: read, packages: write}
     steps:
@@ -128,6 +128,9 @@ jobs:
           kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
 
+      - name: мониторинг
+        run: kubectl apply -f k8s/monitoring/
+
       - name: smoke
         # через Ingress, как ходят пользователи: из сети kind узел виден по имени, Traefik слушает NodePort 30080
         run: |
@@ -136,6 +139,10 @@ jobs:
           curl --fail -sS --retry 5 --retry-all-errors -H "$H" "$U/health" > health.json
           cat health.json
           jq -e '.status == "ok" and (.model_version | startswith("my-service-v")) and .model_path == "models:/my-service@champion"' health.json
+
+          VERSION=$(jq -r .model_version health.json)
+          curl --fail -sS --retry 5 --retry-all-errors -H "$H" "$U/metrics" > metrics.txt
+          grep -F "my_service_model_info{version=\"$VERSION\"} 1.0" metrics.txt
 
           curl --fail -sS -X POST -H "$H" "$U/v1/predict" \
             -H "Content-Type: application/json" -d @example.json > pred-positive.json

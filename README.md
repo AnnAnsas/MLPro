@@ -94,3 +94,15 @@ MLFLOW_TRACKING_URI=http://mlflow.localhost EPOCHS=8 \
 MODEL_OUTPUT=/tmp/my-service.joblib \
 uv run --no-sync python -m my_service.train
 ```
+
+## Метрики
+
+Дашборд **My Service** доступен в Grafana. Трафик для панелей запускается через Ingress:
+
+```bash
+uv run --no-sync python scripts/traffic.py \
+  --url http://my-service.localhost --rps 5 --bad 0.05
+```
+
+Скрипт чередует положительный и отрицательный примеры. Параметр `--bad` задаёт долю
+запросов с неправильной длиной окна; они возвращают `422`.
