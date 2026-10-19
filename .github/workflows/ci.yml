@@ -124,15 +124,17 @@ jobs:
       - name: сервис
         run: |
           kubectl apply -f k8s/configmap.yaml -f k8s/service.yaml
-          kubectl apply -f platform/ingress.yaml -f k8s/hpa.yaml
-          kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml | kubectl apply -f -
+          kubectl apply -f platform/ingress.yaml
+          kubectl patch --local -f k8s/hpa.yaml --type=merge \
+            -p '{"spec":{"minReplicas":1}}' -o yaml | kubectl apply -f -
+          kubectl set image --local -f k8s/deployment.yaml api="$IMAGE" -o yaml > /tmp/my-service-deployment.yaml
+          kubectl patch --local -f /tmp/my-service-deployment.yaml --type=merge \
+            -p '{"spec":{"replicas":1}}' -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
 
       - name: мониторинг и DAG
         run: |
           kubectl apply -f k8s/monitoring/
-          kubectl patch hpa my-service --type=merge -p '{"spec":{"minReplicas":1}}'
-          kubectl scale deployment/my-service --replicas=1
           kubectl apply -f platform/airflow.yaml
           kubectl -n mlops rollout status deployment/airflow --timeout=300s
           kubectl -n mlops create configmap airflow-dags --from-file=dags/ \
