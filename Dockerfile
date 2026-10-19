@@ -12,6 +12,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src/ src/
 RUN uv sync --frozen --no-dev 
 
+COPY .dvc/config .dvc/config
+COPY dataset/*.dvc dataset/
+RUN uv run --no-sync dvc config --local core.no_scm true
+
 COPY artifacts/ artifacts/
 
 EXPOSE 8000

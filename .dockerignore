@@ -1,0 +1,10 @@
+.git/
+.venv/
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+dataset/*.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
