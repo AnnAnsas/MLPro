@@ -19,6 +19,7 @@ dependencies = [
     "skops>=0.16.0",
     "dvc[s3]>=3.67.1",
     "prometheus-fastapi-instrumentator>=8",
+    "pandera[pandas]>=0.26,<0.28",
 ]
 
 [dependency-groups]

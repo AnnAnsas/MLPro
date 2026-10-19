@@ -4,7 +4,7 @@
 
 Модель обучается на версионируемом датасете, регистрируется в MLflow и попадает в сервис через алиас `champion`. Локальная Kubernetes-платформа содержит MLflow, Airflow, RustFS/S3, Prometheus, Grafana и Traefik.
 
-Доказательства выполнения и журнал проблем собраны в [`REPORT.md`](REPORT.md).
+Доказательства выполнения и журнал проблем собраны в [`README4.md`](README4.md).
 
 ## Quickstart
 
@@ -38,6 +38,13 @@ uv run --no-sync dvc remote modify --local laptop access_key_id dvcadmin
 uv run --no-sync dvc remote modify --local laptop secret_access_key dvc-secret-123
 uv run --no-sync dvc pull
 uv run --no-sync dvc push
+```
+
+Проверка восстановленного датасета отдельной командой:
+
+```bash
+MLFLOW_TRACKING_URI=http://mlflow.localhost \
+uv run --no-sync python -m my_service.validate_data
 ```
 
 Если Python не разрешает `s3.localhost` в `127.0.0.1`, добавьте в `/etc/hosts` строку `127.0.0.1 s3.localhost` или используйте port-forward. Проверка:
