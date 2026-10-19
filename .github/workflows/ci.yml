@@ -131,7 +131,9 @@ jobs:
       - name: мониторинг и DAG
         run: |
           kubectl apply -f k8s/monitoring/
-          kubectl -n mlops scale deployment/airflow --replicas=1
+          kubectl patch hpa my-service --type=merge -p '{"spec":{"minReplicas":1}}'
+          kubectl scale deployment/my-service --replicas=1
+          kubectl apply -f platform/airflow.yaml
           kubectl -n mlops rollout status deployment/airflow --timeout=300s
           kubectl -n mlops create configmap airflow-dags --from-file=dags/ \
             --dry-run=client -o yaml | kubectl apply -f -
