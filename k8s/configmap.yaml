@@ -6,4 +6,6 @@ data:
   MODEL_PATH: artifacts/tiny_sequence_transformer_v1.joblib
   MODEL_NAME: my-service
   MODEL_ALIAS: champion
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
   MLFLOW_TRACKING_URI: http://mlflow.mlops.svc.cluster.local:5000

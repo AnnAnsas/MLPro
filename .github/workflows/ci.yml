@@ -123,6 +123,10 @@ jobs:
 
       - name: сервис
         run: |
+          kubectl -n mlops scale deployment/airflow --replicas=0
+          if kubectl -n mlops get pod -l app=airflow -o name | grep -q .; then
+            kubectl -n mlops wait --for=delete pod -l app=airflow --timeout=120s
+          fi
           kubectl apply -f k8s/configmap.yaml -f k8s/service.yaml
           kubectl apply -f platform/ingress.yaml
           kubectl patch --local -f k8s/hpa.yaml --type=merge \
@@ -131,16 +135,6 @@ jobs:
           kubectl patch --local -f /tmp/my-service-deployment.yaml --type=merge \
             -p '{"spec":{"replicas":1}}' -o yaml | kubectl apply -f -
           kubectl rollout status deploy/my-service --timeout=180s
-
-      - name: мониторинг и DAG
-        run: |
-          kubectl apply -f k8s/monitoring/
-          kubectl apply -f platform/airflow.yaml
-          kubectl -n mlops rollout status deployment/airflow --timeout=300s
-          kubectl -n mlops create configmap airflow-dags --from-file=dags/ \
-            --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n mlops exec deploy/airflow -- \
-            airflow variables set my_service_image "$IMAGE"
 
       - name: smoke
         # через Ingress, как ходят пользователи: из сети kind узел виден по имени, Traefik слушает NodePort 30080
