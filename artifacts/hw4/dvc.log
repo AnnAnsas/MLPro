@@ -1,0 +1,20 @@
+DVC remotes:
+laptop  s3://dvc  endpointurl=http://s3.localhost (default)
+cluster s3://dvc  endpointurl=http://rustfs.mlops:9000
+
+dvc push:
+Everything is up to date.
+
+Git:
+dataset/.gitignore
+dataset/sensor_trends.csv.dvc
+
+RustFS console:
+bucket=dvc
+objects=1
+size=3.6 MiB
+
+Docker build:
+Контекст сборки: 459.98 kB; dataset/sensor_trends.csv исключён через .dockerignore.
+После установки 144 пакетов сборка перестала отвечать при лимите Docker около 4 ГБ и была отменена.
+Проверка docker run --rm <образ> ls /app/dataset не получена.

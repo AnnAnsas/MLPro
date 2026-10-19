@@ -4,6 +4,8 @@
 
 Модель обучается на версионируемом датасете, регистрируется в MLflow и попадает в сервис через алиас `champion`. Локальная Kubernetes-платформа содержит MLflow, Airflow, RustFS/S3, Prometheus, Grafana и Traefik.
 
+Доказательства выполнения и журнал проблем собраны в [`REPORT.md`](REPORT.md).
+
 ## Quickstart
 
 Нужны Docker Desktop, Git, `uv`, `kind`, `kubectl`, Helm и свободный порт 80. Для платформы достаточно 4 ГБ памяти Docker; перед запуском лучше закрыть другие локальные кластеры.
