@@ -7,8 +7,13 @@
 | 1. Платформа одной командой | [`platform/up.sh`](platform/up.sh), [`platform.log`](artifacts/hw4/platform.log), [`kubectl get pods -A`](images/hw4/kubectl_get_pods.png) | Чистый запуск `sem4` занял 3 мин 57 с. Повторный запуск — 39 с. MLflow, Airflow, RustFS, Traefik, Prometheus и Grafana подняты; бакет `dvc` создан. |
 | 2. Метрики и дашборд | [`dashboard.yaml`](k8s/monitoring/dashboard.yaml), [`traffic.py`](scripts/traffic.py), [`traffic.log`](artifacts/hw4/traffic.log) | Grafana показала 2 pod с `my-service-v1`, RPS, p50/p95, долю положительного класса и распределение score. Под длительной нагрузкой при доступных Docker 4 ГБ появились `502/503`; снимок приложен к сдаче. |
 | 3. Данные в DVC и S3 | [`sensor_trends.csv.dvc`](dataset/sensor_trends.csv.dvc), [конфигурация DVC](.dvc/config), [Dockerfile](Dockerfile), [`.dockerignore`](.dockerignore), [`dvc.log`](artifacts/hw4/dvc.log) | В git находится только указатель. `dvc push` подтвердил данные в бакете `dvc`: 1 объект, 3,6 МиБ. Локальная сборка образа не завершилась из-за нехватки ресурсов; вывод `docker run ... ls` не получен. Снимок бакета приложен к сдаче. |
+| 4. Проверка данных | [`validate_data.py`](src/my_service/validate_data.py), [`test_validate_data.py`](tests/test_validate_data.py), [MLflow run `valid=false`](http://mlflow.localhost/#/experiments/1/runs/2020e3d76906472db15b51ff4358bfc2) | 25 тестов прошли локально. Испорченный `sensor_aux=4.0` дал код 1, тег `valid=false` и артефакт `failure_cases.csv`. Ссылка на зелёный CI будет добавлена после push. |
 
 ![Все компоненты платформы в Running](images/hw4/kubectl_get_pods.png)
+
+## Пороги проверки данных
+
+Границы признаков взяты с запасом от наблюдаемых минимумов и максимумов. Доля класса 1 ограничена 45–55%, медиана `sensor_level` — ±0,25, пропуски — 3%: текущие значения равны 49,8%, 0,032 и 1,88% соответственно.
 
 ## Журнал проблем
 
