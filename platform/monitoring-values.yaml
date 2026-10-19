@@ -1,4 +1,7 @@
 # kube-prometheus-stack в облегчённом виде для kind на ноутбуке
+defaultRules:
+  create: false
+
 alertmanager:
   enabled: false
 
@@ -11,6 +14,19 @@ nodeExporter: {enabled: false}
 
 grafana:
   adminPassword: admin
+  # Grafana 13 из текущего chart долго мигрирует SQLite и загружает все 8 CPU.
+  # Для учебного дашборда достаточно стабильной 11.6.8.
+  image:
+    tag: 11.6.8
+  # На 8 ГБ первый запуск и миграция SQLite занимают несколько минут.
+  # Стандартные 60 секунд приводят к перезапуску посреди миграции.
+  livenessProbe:
+    initialDelaySeconds: 300
+    timeoutSeconds: 30
+    failureThreshold: 10
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 256Mi}
   grafana.ini:
     server:
       root_url: http://grafana.localhost
@@ -19,6 +35,25 @@ prometheus:
   prometheusSpec:
     # брать ServiceMonitor из любых namespace, не только с меткой release
     serviceMonitorSelectorNilUsesHelmValues: false
-    retention: 2d
+    retention: 12h
     resources:
-      requests: {cpu: 100m, memory: 400Mi}
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {memory: 512Mi}
+
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
+  livenessProbe:
+    failureThreshold: 6
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 6
+    timeoutSeconds: 5
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
+
+kube-state-metrics:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+    limits: {memory: 128Mi}

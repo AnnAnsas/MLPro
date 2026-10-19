@@ -12,3 +12,21 @@ ports:
 ingressClass:
   name: traefik
   isDefaultClass: true
+
+# Короткие стандартные probe дают ложные перезапуски, когда ноутбук занят
+# запуском Airflow или обучением.
+readinessProbe:
+  initialDelaySeconds: 5
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 6
+
+livenessProbe:
+  initialDelaySeconds: 5
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 6
+
+resources:
+  requests: {cpu: 20m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 128Mi}

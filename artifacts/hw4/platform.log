@@ -1,0 +1,99 @@
+Чистый запуск после `kind delete cluster --name sem4`: 3 мин 57 с.
+Ниже — контрольный повторный запуск той же команды: 39 с.
+
+== kind: sem4
+== MLflow, S3 и Airflow
+namespace/mlops unchanged
+persistentvolumeclaim/mlflow-data unchanged
+deployment.apps/mlflow unchanged
+service/mlflow unchanged
+secret/s3-credentials unchanged
+persistentvolumeclaim/rustfs-data unchanged
+deployment.apps/rustfs unchanged
+service/rustfs unchanged
+serviceaccount/airflow unchanged
+role.rbac.authorization.k8s.io/airflow-pods unchanged
+rolebinding.rbac.authorization.k8s.io/airflow-pods unchanged
+role.rbac.authorization.k8s.io/my-service-rollout unchanged
+rolebinding.rbac.authorization.k8s.io/airflow-my-service-rollout unchanged
+persistentvolumeclaim/airflow-data unchanged
+deployment.apps/airflow unchanged
+service/airflow unchanged
+== Traefik, Prometheus и Grafana
+Release "traefik" has been upgraded. Happy Helming!
+NAME: traefik
+LAST DEPLOYED: Mon Oct 19 18:00:54 2026
+NAMESPACE: traefik
+STATUS: deployed
+REVISION: 2
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+traefik with docker.io/traefik:v3.7.13 has been deployed successfully on traefik namespace!
+Release "monitoring" has been upgraded. Happy Helming!
+NAME: monitoring
+LAST DEPLOYED: Mon Oct 19 18:00:57 2026
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 2
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+kube-prometheus-stack has been installed. Check its status by running:
+  kubectl --namespace monitoring get pods -l "release=monitoring"
+
+Get Grafana 'admin' user password by running:
+
+  kubectl --namespace monitoring get secrets monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+
+Access Grafana local instance:
+
+  export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=monitoring" -oname)
+  kubectl --namespace monitoring port-forward $POD_NAME 3000
+
+Get your grafana admin user password by running:
+
+  kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" | base64 --decode ; echo
+
+
+Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
+ingress.networking.k8s.io/mlflow unchanged
+ingress.networking.k8s.io/airflow unchanged
+ingress.networking.k8s.io/my-service unchanged
+ingress.networking.k8s.io/grafana unchanged
+ingress.networking.k8s.io/s3 unchanged
+== ожидание платформы
+deployment "mlflow" successfully rolled out
+deployment "rustfs" successfully rolled out
+deployment "airflow" successfully rolled out
+deployment "monitoring-grafana" successfully rolled out
+statefulset rolling update complete 1 pods at revision prometheus-monitoring-kube-prometheus-prometheus-59b7544c48...
+== бакет dvc
+Бакет dvc готов (200)
+NAMESPACE            NAME                                                   READY   STATUS    RESTARTS   AGE
+kube-system          coredns-559f6c778d-9xbc5                               1/1     Running   0          5m9s
+kube-system          coredns-559f6c778d-fzxtf                               1/1     Running   0          5m9s
+kube-system          etcd-sem4-control-plane                                1/1     Running   0          5m17s
+kube-system          kindnet-sp8xq                                          1/1     Running   0          5m9s
+kube-system          kube-apiserver-sem4-control-plane                      1/1     Running   0          5m17s
+kube-system          kube-controller-manager-sem4-control-plane             1/1     Running   0          5m17s
+kube-system          kube-proxy-gq5tj                                       1/1     Running   0          5m9s
+kube-system          kube-scheduler-sem4-control-plane                      1/1     Running   0          5m17s
+local-path-storage   local-path-provisioner-75f7fc7dc5-7hfd4                1/1     Running   0          5m9s
+mlops                airflow-844dc876bb-7lzzq                               1/1     Running   0          5m9s
+mlops                mlflow-85fd8d64c8-wrxl8                                1/1     Running   0          5m9s
+mlops                rustfs-59bd878b7b-2xh46                                1/1     Running   0          5m9s
+monitoring           monitoring-grafana-579949fdcc-jcx92                    3/3     Running   0          2m34s
+monitoring           monitoring-kube-prometheus-operator-7bdb579bd6-4kd5q   1/1     Running   0          2m34s
+monitoring           monitoring-kube-state-metrics-c6f854747-6tn68          1/1     Running   0          2m34s
+monitoring           prometheus-monitoring-kube-prometheus-prometheus-0     2/2     Running   0          2m25s
+traefik              traefik-6d9c545874-m57q5                               1/1     Running   0          5m9s
+
+MLflow:    http://mlflow.localhost
+Airflow:   http://airflow.localhost
+Grafana:   http://grafana.localhost (admin/admin)
+S3:        http://s3.localhost
+S3 console:http://s3-console.localhost/rustfs/console/index.html
+real 39.04
+user 4.88
+sys 2.18
