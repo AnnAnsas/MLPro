@@ -6,6 +6,8 @@ from typing import Literal
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
+from prometheus_client import Counter, Gauge, Histogram
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, FiniteFloat
 from starlette.background import BackgroundTask
 from starlette.responses import JSONResponse
@@ -15,6 +17,23 @@ from my_service.config import settings
 from my_service.model_store import load_model
 
 SensorValue = FiniteFloat | None
+
+PREDICTIONS = Counter(
+    "my_service_predictions_total",
+    "Predictions by class",
+    ["prediction"],
+)
+SCORE = Histogram(
+    "my_service_score",
+    "Predicted probability of class 1",
+    buckets=(0.05, 0.15, 0.25, 0.3, 0.325, 0.35, 0.45, 0.6, 0.8, 1.0),
+)
+MODEL_INFO = Gauge(
+    "my_service_model_info",
+    "Model loaded by this pod",
+    ["version"],
+)
+LATENCY_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0)
 
 
 class Features(BaseModel):
@@ -37,9 +56,11 @@ class Prediction(BaseModel):
     score: FiniteFloat = Field(ge=0, le=1, description="Probability of class 1")
     latency_ms: FiniteFloat = Field(ge=0)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.pipeline, app.state.meta, app.state.version = load_model()
+    MODEL_INFO.labels(app.state.version).set(1)
     db.init()
     try:
         yield
@@ -49,6 +70,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MLPro_my_service", version="0.1.0", lifespan=lifespan)
+Instrumentator().instrument(app, latency_lowr_buckets=LATENCY_BUCKETS).expose(app)
 
 
 @app.middleware("http")
@@ -110,6 +132,7 @@ def health() -> dict:
         ),
     }
 
+
 @app.get("/ready")
 def ready() -> dict:
     if not getattr(app.state, "pipeline", None):
@@ -124,13 +147,16 @@ def predict(x: Features, request: Request) -> Prediction:
     request_id = request.state.request_id
     score = float(app.state.pipeline.predict_proba(x.to_model_input())[0, 1])
     request.state.scores = [score]
+    prediction = int(score >= app.state.meta["threshold"])
+    PREDICTIONS.labels(str(prediction)).inc()
+    SCORE.observe(score)
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
     return Prediction(
         request_id=request_id,
         model_version=app.state.version,
-        prediction=int(score >= app.state.meta["threshold"]),
+        prediction=prediction,
         score=score,
         latency_ms=latency_ms,
     )
@@ -164,6 +190,9 @@ def predict_batch(batch: BatchFeatures, request: Request) -> BatchPrediction:
         BatchResult(prediction=int(score >= app.state.meta["threshold"]), score=float(score))
         for score in scores
     ]
+    for item in predictions:
+        PREDICTIONS.labels(str(item.prediction)).inc()
+        SCORE.observe(item.score)
     request.state.scores = [item.score for item in predictions]
     return BatchPrediction(
         request_id=request_id,

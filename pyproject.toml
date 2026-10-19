@@ -18,6 +18,7 @@ dependencies = [
     "mlflow-skinny>=3.16,<4",
     "skops>=0.16.0",
     "dvc[s3]>=3.67.1",
+    "prometheus-fastapi-instrumentator>=8",
 ]
 
 [dependency-groups]
