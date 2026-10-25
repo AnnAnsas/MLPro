@@ -8,12 +8,21 @@
 
 ## Quickstart
 
-Нужны Docker Desktop, Git, `uv`, `kind`, `kubectl`, Helm и свободный порт 80. Для платформы достаточно 4 ГБ памяти Docker; перед запуском лучше закрыть другие локальные кластеры.
+Нужны Docker Desktop, Git, `uv`, `kind`, `kubectl`, Helm и свободный порт 80. Для передачи секретов из терминала также нужен GitHub CLI `gh`. Для платформы достаточно 4 ГБ памяти Docker; перед запуском лучше закрыть другие локальные кластеры.
+
+Сначала создайте fork репозитория в GitHub. Укажите URL своего fork без суффикса `.git` и клонируйте его в каталог `MLPro`:
 
 ```bash
-git clone https://github.com/AnnAnsas/MLPro.git
+export REPO_URL='https://github.com/<OWNER>/<REPOSITORY>'
+git clone "${REPO_URL}.git" MLPro
 cd MLPro
+
+test "$(git remote get-url origin)" = "${REPO_URL}.git"
+test -f pyproject.toml
+test -f dataset/sensor_trends.csv.dvc
 uv sync --frozen
+uv run ruff check .
+uv run pytest
 bash platform/up.sh
 ```
 
@@ -61,7 +70,23 @@ MODEL_OUTPUT=/tmp/my-service-champion.joblib \
 uv run --no-sync python -m my_service.train
 ```
 
-В GitHub откройте **Settings → Actions → Runners → New self-hosted runner** и скопируйте временный токен. Runner запускается в сети kind и получает доступ к Docker socket:
+Создайте пароль базы и сохраните его в Actions secret своего fork:
+
+```bash
+export DB_PASSWORD="$(openssl rand -hex 24)"
+printf '%s' "$DB_PASSWORD" | \
+  gh secret set DB_PASSWORD --repo "${REPO_URL#https://github.com/}"
+```
+
+Проверить наличие секрета можно командой:
+
+```bash
+gh secret list --repo "${REPO_URL#https://github.com/}" | grep '^DB_PASSWORD'
+```
+
+Без GitHub CLI добавьте `DB_PASSWORD` через **Settings → Secrets and variables → Actions → New repository secret**.
+
+В своём fork откройте **Settings → Actions → Runners → New self-hosted runner** и скопируйте временный токен. Runner запускается в сети kind и получает доступ к Docker socket:
 
 ```bash
 export RUNNER_TOKEN='<токен из GitHub>'
@@ -69,7 +94,7 @@ docker rm -f gh-runner 2>/dev/null || true
 docker run -d --name gh-runner --network kind --group-add 0 \
   --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e REPO_URL=https://github.com/AnnAnsas/MLPro \
+  -e REPO_URL="$REPO_URL" \
   -e RUNNER_TOKEN="$RUNNER_TOKEN" \
   ghcr.io/actions/actions-runner:2.337.0 \
   bash -lc 'if [ ! -f .runner ]; then ./config.sh --unattended \
@@ -77,9 +102,19 @@ docker run -d --name gh-runner --network kind --group-add 0 \
     --labels kind --replace; fi; exec ./run.sh'
 ```
 
-После появления runner со статусом **Idle** откройте **Actions → ci → Run workflow**, выберите ветку `main`, укажите `kind_cluster=sem4` и запустите workflow. После зелёного deploy:
+Проверьте, что runner работает и подключён к сети кластера:
 
 ```bash
+docker ps --filter name=gh-runner
+docker inspect gh-runner --format '{{json .NetworkSettings.Networks}}'
+```
+
+После появления runner со статусом **Idle** в своём fork откройте **Actions → ci → Run workflow**, выберите ветку `main`, укажите `kind_cluster=sem4` и запустите workflow. После зелёного deploy выполните контрольные команды:
+
+```bash
+kubectl get nodes
+kubectl get pods -A
+kubectl get ingress -A
 curl --fail http://my-service.localhost/health
 curl --fail -X POST http://my-service.localhost/v1/predict \
   -H 'Content-Type: application/json' -d @example.json
