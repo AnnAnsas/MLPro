@@ -10,6 +10,43 @@
 
 Нужны Docker Desktop, Git, `uv`, `kind`, `kubectl`, Helm и свободный порт 80. Для передачи секретов из терминала также нужен GitHub CLI `gh`. Для платформы достаточно 4 ГБ памяти Docker; перед запуском лучше закрыть другие локальные кластеры.
 
+### Windows 11 и WSL2
+
+На Windows проект запускается из Ubuntu в WSL2, а не из PowerShell или Git Bash. В PowerShell с правами администратора установите WSL2:
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Для компьютера с 12 ГБ RAM задайте WSL2 верхний предел 8 ГБ и swap 4 ГБ. Создайте файл `%UserProfile%\.wslconfig`:
+
+```ini
+[wsl2]
+memory=8GB
+processors=4
+swap=4GB
+```
+
+Примените настройки:
+
+```powershell
+wsl --shutdown
+```
+
+В Docker Desktop включите **Use the WSL 2 based engine** и интеграцию с Ubuntu в **Resources → WSL Integration**. После запуска Docker Desktop откройте терминал Ubuntu и проверьте окружение:
+
+```bash
+grep -qi microsoft /proc/version
+test "$(uname -m)" = x86_64
+docker info >/dev/null
+test -S /var/run/docker.sock
+free -h
+command -v git uv kind kubectl helm curl gh
+! ss -ltn | grep -q ':80 '
+```
+
+Все следующие команды Quickstart выполняются в этом терминале Ubuntu. Образы публикуются для `linux/amd64` и `linux/arm64`, поэтому Windows-компьютер с процессором x86-64 получит AMD64-вариант. Файлы Bash и YAML закреплены в Git с окончаниями строк LF.
+
 Сначала создайте fork репозитория в GitHub. Укажите URL своего fork без суффикса `.git` и клонируйте его в каталог `MLPro`:
 
 ```bash

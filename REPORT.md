@@ -61,6 +61,7 @@ flowchart LR
 | Quickstart привязан к исходному репозиторию | URL fork задаётся через `REPO_URL`; добавлены настройка `DB_PASSWORD`, создание runner и контрольные команды после клонирования | [Quickstart](README.md#quickstart) |
 | Образ собирался только для ARM64 | В GitHub Actions добавлен QEMU; образ публикуется для `linux/amd64` и `linux/arm64` | [Workflow](.github/workflows/ci.yml) |
 | Бакет `dvc` в новом кластере пуст | Добавлено воспроизводимое создание требуемой версии данных и цикл `dvc add → push → удаление CSV → pull` | [`bootstrap_data.py`](scripts/bootstrap_data.py), [Quickstart](README.md#quickstart) |
+| Перенос на Windows-компьютер | Quickstart дополнен запуском через WSL2, лимитом 8 ГБ, Docker Desktop WSL Integration, проверкой Linux socket и AMD64-образом; для исполняемых файлов закреплены окончания строк LF | [Windows 11 и WSL2](README.md#windows-11-и-wsl2), [`.gitattributes`](.gitattributes) |
 | Результат DAG и полный deploy не подтверждены | Ограничение отмечено без заявления о выполнении; сохранены ссылки на имеющиеся прогоны | [DAG](dags/my_service_retrain.py), [CI](https://github.com/AnnAnsas/MLPro/actions/runs/39327974785) |
 
 ## Переделки ДЗ 1
