@@ -71,7 +71,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, kind]
     concurrency: {group: deploy-kind}
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions: {contents: read, packages: read}
     env:
       KIND_CLUSTER: ${{ inputs.kind_cluster }}
