@@ -109,7 +109,7 @@ docker ps --filter name=gh-runner
 docker inspect gh-runner --format '{{json .NetworkSettings.Networks}}'
 ```
 
-После появления runner со статусом **Idle** в своём fork откройте **Actions → ci → Run workflow**, выберите ветку `main`, укажите `kind_cluster=sem4` и запустите workflow. После зелёного deploy выполните контрольные команды:
+После появления runner со статусом **Idle** в своём fork откройте **Actions → ci → Run workflow**, выберите ветку `main`, укажите `kind_cluster=sem4` и запустите workflow. Multi-arch образ для `linux/amd64` и `linux/arm64` собирается на GitHub runner, поэтому эта сборка почти не расходует память локального Docker. После зелёного deploy выполните контрольные команды:
 
 ```bash
 kubectl get nodes

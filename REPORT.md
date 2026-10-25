@@ -59,6 +59,7 @@ flowchart LR
 | Не хватало схемы и восьми ответов | Добавлена схема компонентов; ответы собраны в отдельном разделе | [схема](#схема-платформы), [ответы](#ответы-на-вопросы) |
 | Нужны снимки дашборда и S3 | Снимки включены в отчёт вместе с исходниками дашборда и журналами проверок | [Grafana](images/hw4/grafana_dashboard.png), [S3](images/hw4/s3_dvc_bucket.png) |
 | Quickstart привязан к исходному репозиторию | URL fork задаётся через `REPO_URL`; добавлены настройка `DB_PASSWORD`, создание runner и контрольные команды после клонирования | [Quickstart](README.md#quickstart) |
+| Образ собирался только для ARM64 | В GitHub Actions добавлен QEMU; образ публикуется для `linux/amd64` и `linux/arm64` | [Workflow](.github/workflows/ci.yml) |
 | Результат DAG и полный deploy не подтверждены | Ограничение отмечено без заявления о выполнении; сохранены ссылки на имеющиеся прогоны | [DAG](dags/my_service_retrain.py), [CI](https://github.com/AnnAnsas/MLPro/actions/runs/39327974785) |
 
 ## Ответы на вопросы
