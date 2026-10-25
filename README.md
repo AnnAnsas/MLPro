@@ -40,14 +40,20 @@ kubectl get ingress -A
 curl --fail http://mlflow.localhost/health
 ```
 
-Настройка локальных ключей DVC, восстановление данных и проверка записи в S3:
+Для нового кластера бакет `dvc` сначала пуст. Настройте локальные ключи, воспроизведите версию данных из `.dvc`-указателя, загрузите её в S3 и проверьте восстановление:
 
 ```bash
 uv run --no-sync dvc remote modify --local laptop access_key_id dvcadmin
 uv run --no-sync dvc remote modify --local laptop secret_access_key dvc-secret-123
-uv run --no-sync dvc pull
+uv run --no-sync python scripts/bootstrap_data.py
+uv run --no-sync dvc add dataset/sensor_trends.csv
 uv run --no-sync dvc push
+rm dataset/sensor_trends.csv
+uv run --no-sync dvc pull
+uv run --no-sync dvc status
 ```
+
+Скрипт удаляет 72 train-окна, в которых больше пяти пропусков, и завершится с ошибкой, если итоговый MD5 отличается от `3b4320a5898d952f1657acd6663d423a`.
 
 Проверка восстановленного датасета отдельной командой:
 
