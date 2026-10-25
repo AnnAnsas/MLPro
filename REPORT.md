@@ -2,14 +2,29 @@
 
 ## Выполнение задания
 
-| Пункт | Доказательство | Результат |
-|---|---|---|
-| 1. Платформа одной командой | [`platform/up.sh`](platform/up.sh), [`platform.log`](artifacts/hw4/platform.log), [`kubectl get pods -A`](images/hw4/kubectl_get_pods.png) | Чистый запуск `sem4` занял 3 мин 57 с. Повторный запуск — 39 с. MLflow, Airflow, RustFS, Traefik, Prometheus и Grafana подняты; бакет `dvc` создан. |
-| 2. Метрики и дашборд | [`dashboard.yaml`](k8s/monitoring/dashboard.yaml), [дашборд под трафиком](images/hw4/grafana_dashboard.png), [чистый трафик](images/hw4/traffic_clean.png), [`traffic_clean.log`](artifacts/hw4/traffic_clean.log) | Grafana показала версию модели, RPS, p50/p95, долю положительного класса и распределение score. Контрольный запуск: 50 из 50 ответов с кодом 200. |
-| 3. Данные в DVC и S3 | [`sensor_trends.csv.dvc`](dataset/sensor_trends.csv.dvc), [бакет `dvc`](images/hw4/s3_dvc_bucket.png), [содержимое образа](images/hw4/docker_dataset.png), [`docker_dataset.log`](artifacts/hw4/docker_dataset.log) | В бакете один объект размером 3,6 МиБ. В готовом образе из GHCR в `dataset` находится только `sensor_trends.csv.dvc`; самого CSV нет. |
-| 4. Проверка данных | [`validate_data.py`](src/my_service/validate_data.py), [`test_validate_data.py`](tests/test_validate_data.py), [CI run 39305338626](https://github.com/AnnAnsas/MLPro/actions/runs/39305338626), [открытый `failure_cases.csv`](images/hw4/mlflow_failure_cases.png) | 25 тестов прошли локально. Испорченный `sensor_aux=4.0` дал код 1, тег `valid=false` и артефакт `failure_cases.csv`. В CI тесты и сборка прошли, deploy остановлен по 10-минутному тайм-ауту при загрузке образа в kind. |
-| 5. Конвейер переобучения | [`my_service_retrain.py`](dags/my_service_retrain.py), [Model Registry с алиасами](images/hw4/mlflow_registry_aliases.png) | **Не выполнено.** DAG содержит нужные четыре задачи, но три сценария не пройдены и не сняты: Airflow вместе с сервисом и мониторингом не работает устойчиво при 4 ГБ Docker. |
-| 6. CI/CD целиком | [CI](.github/workflows/ci.yml) | **Не выполнено целиком.** Тесты, сборка, база, сервис и smoke работают. Шаг Airflow удалён из deploy, потому что из-за нехватки памяти он останавливал весь прогон. |
+| Пункт задания | Доказательство |
+|---|---|
+| 1. Платформа одной командой | [`platform/up.sh`](platform/up.sh), [`platform.log`](artifacts/hw4/platform.log), [`kubectl get pods -A`](images/hw4/kubectl_get_pods.png). Чистый запуск `sem4` занял 3 мин 57 с, повторный — 39 с. MLflow, Airflow, RustFS, Traefik, Prometheus и Grafana поднялись, бакет `dvc` создан. |
+| 2. Метрики и дашборд | [`dashboard.yaml`](k8s/monitoring/dashboard.yaml), [дашборд под трафиком](images/hw4/grafana_dashboard.png), [чистый трафик](images/hw4/traffic_clean.png), [`traffic_clean.log`](artifacts/hw4/traffic_clean.log). Grafana показывает версию модели, RPS, p50/p95, долю положительного класса и распределение score. Контрольный запуск: 50 ответов из 50 с кодом 200. |
+| 3. Данные в DVC и S3 | [`sensor_trends.csv.dvc`](dataset/sensor_trends.csv.dvc), [бакет `dvc`](images/hw4/s3_dvc_bucket.png), [содержимое образа](images/hw4/docker_dataset.png), [`docker_dataset.log`](artifacts/hw4/docker_dataset.log). В бакете один объект размером 3,6 МиБ. В каталоге `dataset` готового образа находится только `.dvc`-указатель. |
+| 4. Проверка данных | [`validate_data.py`](src/my_service/validate_data.py), [`test_validate_data.py`](tests/test_validate_data.py), [CI run 39305338626](https://github.com/AnnAnsas/MLPro/actions/runs/39305338626), [`failure_cases.csv` в MLflow](images/hw4/mlflow_failure_cases.png). Локально прошли 25 тестов. Значение `sensor_aux=4.0` дало код 1, тег `valid=false` и артефакт `failure_cases.csv`. |
+| 5. Конвейер переобучения | [`my_service_retrain.py`](dags/my_service_retrain.py), [Model Registry с алиасами](images/hw4/mlflow_registry_aliases.png). DAG содержит задачи `validate`, `train`, `promoted`, `rollout`. Два требуемых запуска DAG и доказательства rollout не получены. |
+| 6. CI/CD целиком | [Workflow](.github/workflows/ci.yml), [последний полный запуск](https://github.com/AnnAnsas/MLPro/actions/runs/39327974785). Тесты и сборка прошли. Полный deploy с Airflow не завершён; причина и выполненные попытки приведены ниже. |
+
+## Схема платформы
+
+```mermaid
+flowchart LR
+    Client[Клиент] --> Ingress[Traefik]
+    Ingress --> API[my-service]
+    API --> DB[(PostgreSQL)]
+    API --> Registry[MLflow Registry]
+    Airflow --> Train[Pod проверки и обучения]
+    Train --> S3[(RustFS / DVC)]
+    Train --> Registry
+    Prometheus --> API
+    Grafana --> Prometheus
+```
 
 ![Все компоненты платформы в Running](images/hw4/kubectl_get_pods.png)
 
@@ -34,6 +49,16 @@
 На ноутбуке 8 ГБ оперативной памяти, Docker получает 3,83 ГиБ. Для запуска Airflow запрос памяти снижался с 768 до 512 МиБ, число worker и parsing process — до одного, сервис и HPA — до одной реплики; Grafana и Prometheus временно останавливались, Docker перезапускался. Лимит Airflow 1 ГиБ дал `OOMKilled`, поэтому его вернули на 1,5 ГиБ.
 
 Кратковременно все компоненты становились `Ready` при потреблении kind около 3,03 ГиБ, но затем scheduler и controller-manager переходили в `Error`, Ingress отвечал `502/503`, а deploy терял Kubernetes API. Поэтому три сценария DAG не получены, а шаг Airflow удалён из CI ради стабильного деплоя сервиса.
+
+## Переделки
+
+| Пункт обратной связи | Что сделано | Доказательство |
+|---|---|---|
+| Отчёт должен находиться в `REPORT.md` | Отчёт перенесён в корень репозитория, ссылка в основном README обновлена | [`REPORT.md`](REPORT.md), [`README.md`](README.md) |
+| Нужна таблица по каждому «Предъявить» | Для всех шести пунктов указаны файлы, прогоны и снимки; незавершённые результаты отмечены прямо | [таблица выполнения](#выполнение-задания) |
+| Не хватало схемы и восьми ответов | Добавлена схема компонентов; ответы собраны в отдельном разделе | [схема](#схема-платформы), [ответы](#ответы-на-вопросы) |
+| Нужны снимки дашборда и S3 | Снимки включены в отчёт вместе с исходниками дашборда и журналами проверок | [Grafana](images/hw4/grafana_dashboard.png), [S3](images/hw4/s3_dvc_bucket.png) |
+| Результат DAG и полный deploy не подтверждены | Ограничение отмечено без заявления о выполнении; сохранены ссылки на имеющиеся прогоны | [DAG](dags/my_service_retrain.py), [CI](https://github.com/AnnAnsas/MLPro/actions/runs/39327974785) |
 
 ## Ответы на вопросы
 
@@ -61,7 +86,7 @@
 | После локального обучения kubelet медленно создавал поды | Docker использовал около 3,1 из 3,8 ГБ, macOS активно работала со swap | Для локального обучения временно остановлены Airflow и мониторинг; после обучения платформа восстановлена. Traefik получил ресурсы и менее строгие probe |
 | После длительной работы один CoreDNS временно стал `0/1` | Кластер занял около 2,9 из доступных Docker 3,8 ГБ, health-check не успел ответить | CoreDNS перезапущен; для освобождения памяти после проверки кластер останавливается |
 | Под трафиком сервис и Grafana потеряли готовность | Две реплики модели, Prometheus, Grafana, MLflow и RustFS вместе превысили доступные Docker 4 ГБ | За 271 с генератор получил 128 ответов `200`, 6 ответов `422`, затем 3 сетевые ошибки, 66 ответов `502` и 47 ответов `503`. Исправление не выполнялось; ограничение честно зафиксировано |
-| Локальная сборка образа остановилась после установки 144 пакетов | Docker завис на сохранении тяжёлого слоя с PyTorch при том же лимите памяти | Сборка отменена вручную. Проверка `docker run --rm ... ls dataset` не выполнена |
-| CI остановил deploy при загрузке образа в kind | Импорт образа занял больше заданных для job 10 минут; пользователь прогон не отменял | Лимит deploy увеличен до 30 минут |
+| Локальная сборка образа остановилась после установки 144 пакетов | Docker завис на сохранении тяжёлого слоя с PyTorch при том же лимите памяти | Для проверки использован образ из GHCR: в `dataset` найден только `sensor_trends.csv.dvc` |
+| CI остановил deploy при загрузке образа в kind | Импорт образа не уложился в исходный лимит job | Лимит deploy увеличен с 10 до 30 минут |
 | Airflow не стал `Ready` в [run 39309559546](https://github.com/AnnAnsas/MLPro/actions/runs/39309559546) | Две реплики сервиса, Airflow и мониторинг перегрузили kind; API Kubernetes перестал отвечать | CI оставляет одну реплику сервиса, запускает Airflow с одним worker и временно останавливает Grafana и Prometheus на время его старта. После исправления вся платформа работает одновременно и занимает около 3,03 из 3,83 ГиБ kind |
 
