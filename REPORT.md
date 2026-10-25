@@ -62,6 +62,56 @@ flowchart LR
 | Образ собирался только для ARM64 | В GitHub Actions добавлен QEMU; образ публикуется для `linux/amd64` и `linux/arm64` | [Workflow](.github/workflows/ci.yml) |
 | Результат DAG и полный deploy не подтверждены | Ограничение отмечено без заявления о выполнении; сохранены ссылки на имеющиеся прогоны | [DAG](dags/my_service_retrain.py), [CI](https://github.com/AnnAnsas/MLPro/actions/runs/39327974785) |
 
+## Переделки ДЗ 1
+
+Рабочая последовательность после клонирования приведена в [Quickstart](README.md#quickstart) и в [README1.md](README1.md). Команды проверки чистого клона были добавлены в [коммите `5088a45`](https://github.com/AnnAnsas/MLPro/commit/5088a4510c08607f091278671716f051ed357862). Для воспроизведения именно ДЗ 1 после клонирования выбирается этот коммит: более поздние домашние работы меняют конфигурацию сервиса и Kubernetes.
+
+Установка окружения и тесты:
+
+```bash
+export REPO_URL='https://github.com/<OWNER>/<REPOSITORY>'
+git clone "${REPO_URL}.git" MLPro
+cd MLPro
+git checkout 5088a4510c08607f091278671716f051ed357862
+uv sync --locked
+uv run --no-sync python -c "import my_service"
+uv run --no-sync pytest
+```
+
+Проверка Compose, API и записи в PostgreSQL:
+
+```bash
+docker compose config --quiet
+docker compose up -d --build --wait --wait-timeout 180
+curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://localhost:8000/ready
+curl --fail -H 'Content-Type: application/json' \
+  --data-binary @example.json http://localhost:8000/v1/predict
+sleep 1
+docker compose exec -T db psql -U postgres -d postgres -c \
+  'SELECT request_id, status_code, score, scores FROM predictions ORDER BY ts DESC LIMIT 5;'
+docker compose down
+```
+
+Проверка Kubernetes:
+
+```bash
+kind create cluster --name mlpro-hw1
+docker build -t my_service:1.0 .
+kind load docker-image my_service:1.0 --name mlpro-hw1
+kubectl --context kind-mlpro-hw1 apply -f k8s/
+kubectl --context kind-mlpro-hw1 rollout status deployment/my-service --timeout=180s
+kubectl --context kind-mlpro-hw1 get pods,svc
+kubectl --context kind-mlpro-hw1 port-forward service/my-service 8001:80 &
+forward_pid=$!
+trap 'kill "$forward_pid"' EXIT
+curl --fail --retry 30 --retry-connrefused --retry-delay 2 \
+  -H 'Content-Type: application/json' \
+  --data-binary @example.json http://localhost:8001/v1/predict
+kill "$forward_pid"
+trap - EXIT
+kind delete cluster --name mlpro-hw1
+```
+
 ## Ответы на вопросы
 
 1. **Как воспроизвести версию модели N?** По версии в Model Registry нахожу `run_id`, параметры, метрики и git-коммит запуска. По этому коммиту восстанавливаю код и DVC-указатель, выполняю `dvc pull` и сверяю `data_md5`, `seed`, `epochs` и остальные параметры из MLflow.
